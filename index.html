@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>カルテ</title>
+<meta name="theme-color" content="#FDF6FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151019" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="カルテ">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+:root{
+  --paper:#FDF6FA;
+  --card:#FFFFFF;
+  --ink:#231B2B;
+  --muted:#7C7189;
+  --line:#EFE2EC;
+  --line2:#E3D4DF;
+  --accent:#E8368F;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#FFE7F2;
+  --accent-line:#FFC9E0;
+  --danger:#E03B57;
+  --danger-soft:#FFE6EA;
+  --shadow:0 2px 10px rgba(202,60,140,.08);
+  --shadow2:0 6px 20px rgba(202,60,140,.14);
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#151019;
+    --card:#211A28;
+    --ink:#F3EAF3;
+    --muted:#A294AF;
+    --line:#332941;
+    --line2:#3E3250;
+    --accent:#FF74B4;
+    --accent-ink:#2A0F1E;
+    --accent-soft:#3A1F31;
+    --accent-line:#5A3049;
+    --danger:#FF7D91;
+    --danger-soft:#3C1F27;
+    --shadow:none;
+    --shadow2:none;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#151019; --card:#211A28; --ink:#F3EAF3; --muted:#A294AF;
+  --line:#332941; --line2:#3E3250; --accent:#FF74B4; --accent-ink:#2A0F1E;
+  --accent-soft:#3A1F31; --accent-line:#5A3049; --danger:#FF7D91; --danger-soft:#3C1F27;
+  --shadow:none; --shadow2:none; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{
+  margin:0;height:100%;
+  background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic Medium",system-ui,-apple-system,sans-serif;
+  font-size:16px;line-height:1.6;letter-spacing:.01em;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+button,input,textarea,select{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer;background:none;border:none;padding:0}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- shell ---------- */
+#shell{display:flex;flex-direction:column;height:100%}
+#bar{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;gap:10px;
+  padding:11px 16px;min-height:54px;
+  background:color-mix(in srgb,var(--paper) 86%,transparent);
+  -webkit-backdrop-filter:saturate(1.8) blur(16px);backdrop-filter:saturate(1.8) blur(16px);
+  border-bottom:1px solid var(--line);
+}
+#bar h1{margin:0;font-size:1.1875rem;font-weight:800;letter-spacing:.02em;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barbtn{color:var(--accent);font-size:.9375rem;font-weight:700;padding:7px 12px;white-space:nowrap;
+  border-radius:999px;background:var(--accent-soft)}
+.barbtn:active{transform:scale(.96)}
+.back{display:flex;align-items:center;gap:2px;margin-left:-2px;padding-left:8px}
+.back svg{width:16px;height:16px;flex:none}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 28px}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+
+/* ---------- tab bar ---------- */
+#tabs{
+  display:flex;gap:4px;padding:7px 10px 6px;
+  border-top:1px solid var(--line);background:var(--card);
+  padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));
+}
+#tabs button{flex:1;padding:7px 0 7px;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  color:var(--muted);font-size:.6875rem;font-weight:700;letter-spacing:.04em}
+#tabs button[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+#tabs svg{width:23px;height:23px}
+
+/* ---------- search ---------- */
+.searchrow{padding:12px 16px 6px;max-width:640px;margin:0 auto}
+.search{position:relative}
+.search input{
+  width:100%;padding:13px 14px 13px 40px;border-radius:16px;
+  border:1.5px solid var(--line);background:var(--card);box-shadow:var(--shadow);
+}
+.search input:focus{border-color:var(--accent-line)}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--accent)}
+
+/* ---------- lists ---------- */
+.list{background:var(--card);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row:active{background:var(--accent-soft)}
+.initial{
+  flex:none;width:42px;height:42px;border-radius:15px;
+  display:grid;place-items:center;font-size:1.0625rem;font-weight:800;color:#fff;
+}
+.rowmain{flex:1;min-width:0}
+.rowname{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowsub{font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowright{flex:none;text-align:right;font-size:.75rem;color:var(--muted);line-height:1.35}
+.rowright .ago{display:inline-block;margin-top:2px;padding:1px 8px;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.6875rem}
+
+/* ---------- sections ---------- */
+.sec{margin-top:24px}
+.sec > h2{margin:0 0 10px;font-size:.875rem;font-weight:800;color:var(--ink);letter-spacing:.02em;
+  display:flex;align-items:center;gap:7px}
+.sec > h2::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--accent);flex:none}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:15px;box-shadow:var(--shadow)}
+
+/* ---------- customer header ---------- */
+.chead{padding:18px 0 2px;display:flex;gap:14px;align-items:center}
+.chead .initial{width:58px;height:58px;border-radius:20px;font-size:1.375rem}
+.chead .nm{font-size:1.5rem;font-weight:800;letter-spacing:.01em;line-height:1.25;margin:0}
+.chead .kn{color:var(--muted);font-size:.8125rem;margin-top:1px}
+.chips{display:flex;gap:8px;margin-top:14px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-width:80px;border-radius:16px;padding:9px 13px;border:1.5px solid transparent}
+.chip dt{font-size:.6875rem;font-weight:700;opacity:.8;letter-spacing:.03em}
+.chip dd{margin:1px 0 0;font-weight:800;font-size:1.0625rem;letter-spacing:-.01em}
+.chip a{color:inherit;text-decoration:none}
+
+/* ---------- last recipe (the hero) ---------- */
+.recipe{
+  margin-top:18px;border-radius:22px;padding:16px;
+  background:var(--card);border:2px solid var(--accent-line);box-shadow:var(--shadow2);
+}
+.recipe .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.recipe .rhead b{font-size:.8125rem;font-weight:800;color:var(--accent-ink);letter-spacing:.04em;
+  background:var(--accent);padding:4px 11px;border-radius:999px}
+.recipe .rhead span{font-size:.75rem;color:var(--muted);font-weight:600}
+.chem{display:block;padding:11px 0 11px 13px;border-left:5px solid var(--accent);border-radius:3px;margin-bottom:9px;
+  background:var(--paper)}
+.chem:last-of-type{margin-bottom:0}
+.chem .cp{display:inline-block;font-size:.6875rem;font-weight:800;letter-spacing:.03em;
+  padding:2px 9px;border-radius:999px;margin-bottom:4px}
+.chemline{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding-right:10px}
+.chem .ci{flex:1;min-width:0;font-size:1.0625rem;font-weight:700;line-height:1.45;word-break:break-word}
+.chem .cr{flex:none;font-size:1rem;font-weight:800;color:var(--accent)}
+.chem .ct{flex:none;font-size:.8125rem;color:var(--muted);font-weight:700}
+.recipe .rmemo{margin-top:12px;padding:11px 13px;border-radius:14px;background:var(--accent-soft);
+  font-size:.875rem;white-space:pre-wrap;word-break:break-word}
+
+/* ---------- history ---------- */
+.hist{position:relative;padding-left:22px}
+.hist::before{content:"";position:absolute;left:5px;top:10px;bottom:10px;width:2px;border-radius:2px;
+  background:var(--accent-line)}
+.hentry{position:relative;width:100%;text-align:left;padding:13px 14px;margin-bottom:10px;
+  background:var(--card);border:1.5px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.hentry:active{background:var(--accent-soft)}
+.hentry::before{content:"";position:absolute;left:-22px;top:19px;width:12px;height:12px;border-radius:50%;
+  background:var(--dot,var(--accent));border:3px solid var(--paper)}
+.htop{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.hdate{font-weight:800;font-size:.9375rem}
+.hprice{font-size:.8125rem;font-weight:800;color:var(--accent);background:var(--accent-soft);
+  padding:2px 10px;border-radius:999px;flex:none}
+.hmenu{font-size:.8125rem;color:var(--muted);font-weight:700;margin-top:3px}
+.hchem{font-size:.8125rem;color:var(--muted);margin-top:6px;line-height:1.55;word-break:break-word}
+.thumbs{display:flex;gap:6px;margin-top:9px}
+.thumbs img{width:56px;height:56px;object-fit:cover;border-radius:12px;border:1.5px solid var(--line);background:var(--paper)}
+
+/* ---------- forms ---------- */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.75rem;color:var(--muted);font-weight:700;letter-spacing:.03em;margin-bottom:6px}
+.field input,.field textarea,.field select{
+  width:100%;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);
+  background:var(--card);
+}
+.field input:focus,.field textarea:focus{border-color:var(--accent-line)}
+.field textarea{min-height:86px;resize:vertical;line-height:1.65}
+.field .hint{font-size:.75rem;color:var(--muted);margin-top:6px;line-height:1.6}
+.two{display:flex;gap:10px}
+.two > *{flex:1;min-width:0}
+
+.chemrow{border:2px solid var(--line);border-radius:18px;background:var(--card);padding:11px;margin-bottom:11px;box-shadow:var(--shadow)}
+.cpart{width:100%;margin-bottom:9px;padding:10px 32px 10px 13px;border-radius:13px;
+  border:1.5px solid var(--line);background:var(--card);
+  font-size:.875rem;font-weight:800;color:var(--accent);
+  -webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 16px) 52%,calc(100% - 11px) 52%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.cpart.none{color:var(--muted);font-weight:600}
+.cagents{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.ag{position:relative;flex:1 1 44%;min-width:118px;display:flex}
+.ag input{width:100%;padding:11px 28px 11px 12px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper)}
+.ag input:focus{border-color:var(--accent-line)}
+.agdel{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;
+  color:var(--muted);font-size:1rem;line-height:1;display:grid;place-items:center}
+.agdel:active{background:var(--accent-soft)}
+.agadd{flex:0 0 44px;height:42px;border-radius:13px;border:2px dashed var(--accent-line);
+  color:var(--accent);display:grid;place-items:center;font-size:1.125rem;font-weight:700;background:var(--accent-soft)}
+.agadd:active{transform:scale(.94)}
+.cmeta{display:flex;gap:7px;align-items:center;margin-top:9px}
+.cmeta input{padding:11px 12px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper);min-width:0}
+.cmeta input:focus{border-color:var(--accent-line)}
+.cmeta .cratio{flex:1 1 auto}
+.cmeta .cmin{flex:0 0 78px}
+.chemrow .del{flex:none;width:34px;height:34px;border-radius:12px;color:var(--danger);background:var(--danger-soft);
+  display:grid;place-items:center;font-size:1.25rem;line-height:1}
+.chemrow .del:active{transform:scale(.94)}
+
+.btn{display:block;width:100%;padding:14px;border-radius:999px;font-weight:800;text-align:center}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow2)}
+.btn.ghost{border:2px solid var(--accent-line);background:var(--card);color:var(--accent)}
+.btn.quiet{color:var(--accent);font-size:.875rem;padding:9px}
+.btn.danger{color:var(--danger);border:2px solid var(--danger-soft);background:var(--danger-soft)}
+.btn[disabled]{opacity:.5}
+.btn.big{padding:17px;font-size:1.0625rem}
+.btnrow{display:flex;gap:9px;margin-top:9px}
+.btnrow .btn{margin:0;padding:12px;font-size:.875rem}
+
+.photos{display:flex;gap:9px;flex-wrap:wrap}
+.photo{position:relative;width:84px;height:84px;border-radius:16px;overflow:hidden;border:1.5px solid var(--line);background:var(--paper)}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;
+  background:rgba(0,0,0,.62);color:#fff;font-size:.8125rem;line-height:1;display:grid;place-items:center}
+.addphoto{width:84px;height:84px;border-radius:16px;border:2px dashed var(--accent-line);
+  color:var(--accent);display:grid;place-items:center;font-size:.6875rem;font-weight:700;text-align:center;
+  line-height:1.5;background:var(--accent-soft)}
+.addphoto span{display:block;font-size:1.375rem;line-height:1}
+
+/* ---------- sales ---------- */
+.monthnav{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 0 6px}
+.monthnav button{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;
+  color:var(--accent);background:var(--accent-soft);font-size:1.25rem;font-weight:800}
+.monthnav button:active{transform:scale(.94)}
+.monthnav b{font-size:1.1875rem;font-weight:800;min-width:126px;text-align:center}
+.stats{display:flex;gap:9px;margin-top:8px}
+.stat{flex:1;border-radius:18px;padding:14px 10px;text-align:center;border:1.5px solid transparent}
+.stat b{display:block;font-size:1.3125rem;font-weight:800;letter-spacing:-.02em}
+.stat span{font-size:.6875rem;font-weight:700;letter-spacing:.03em;opacity:.85}
+.bars{margin-top:4px}
+.bar{padding:11px 0;border-bottom:1px solid var(--line)}
+.bar:last-child{border-bottom:none}
+.bartop{display:flex;justify-content:space-between;gap:10px;font-size:.875rem;font-weight:700;margin-bottom:6px}
+.bartop span:last-child{color:var(--muted)}
+.track{height:9px;border-radius:999px;background:var(--line);overflow:hidden}
+.fill{height:100%;border-radius:999px}
+
+/* ---------- segmented control ---------- */
+.seg{display:flex;gap:5px;padding:5px;background:var(--accent-soft);border-radius:16px;margin-bottom:4px}
+.seg button{flex:1;padding:10px 0;border-radius:12px;font-size:.9375rem;font-weight:800;color:var(--muted)}
+.seg button[aria-current="true"]{background:var(--card);color:var(--accent);box-shadow:var(--shadow)}
+
+/* ---------- picker sheet ---------- */
+.sheetback{position:fixed;inset:0;z-index:85;background:rgba(35,20,35,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:640px;max-height:84vh;display:flex;flex-direction:column;
+  background:var(--paper);border-radius:26px 26px 0 0;border:1.5px solid var(--line);border-bottom:none;
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+.shead{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid var(--line)}
+.shead b{flex:1;text-align:center;font-size:1rem;font-weight:800}
+.sbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 22px}
+.row.pick .tick{flex:none;width:26px;height:26px;border-radius:9px;border:2px solid var(--line2);
+  display:grid;place-items:center;font-size:.875rem;font-weight:800;color:var(--accent-ink);background:var(--card)}
+.row.pick.on .tick{background:var(--accent);border-color:var(--accent)}
+.row .del{flex:none;width:32px;height:32px;border-radius:11px;color:var(--danger);background:var(--danger-soft);
+  font-size:1.125rem;line-height:1;display:grid;place-items:center}
+.row .del:active{transform:scale(.94)}
+
+/* ---------- misc ---------- */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-weight:800;margin-bottom:7px;font-size:1.0625rem}
+.empty p{margin:0 0 18px;font-size:.875rem;line-height:1.75}
+.note{font-size:.75rem;color:var(--muted);line-height:1.7;margin-top:10px}
+.toast{
+  position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:999px;font-size:.875rem;font-weight:700;
+  z-index:80;max-width:88vw;text-align:center;box-shadow:0 6px 22px rgba(0,0,0,.24)
+}
+#lightbox{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.93);display:grid;place-items:center;padding:20px}
+#lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px}
+.spin{display:inline-block;width:16px;height:16px;border:2.5px solid currentColor;border-right-color:transparent;
+  border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;color:var(--accent)}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}
+  .btn:active,.barbtn:active,.agadd:active,.monthnav button:active,.del:active{transform:none}}
+</style>
+</head>
+<body>
+<div id="shell">
+  <header id="bar"><h1>顧客</h1></header>
+  <main><div id="view"></div></main>
+  <nav id="tabs"></nav>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   state
+   ========================================================= */
+var DB=null, ASSETS=null, DL=null, ready=false;
+var S={tab:"customers", screen:"list", cid:null, vid:null, q:"", ym:todayYM(), reg:"colors"};
+var customers=[];            // [{id,...}]
+var chart=null;              // {visits:[...]} for S.cid
+var presets={chems:[],menus:[]};
+var colors=[];               // registered colour/chemical product names
+var menus=[];                // registered menus [{name, price}]
+var draft=null;              // visit form working copy
+var cdraft=null;             // customer form working copy
+var salesCache={};
+var sheetSel={};             // picker sheet selection
+
+var view=document.getElementById("view");
+var bar=document.getElementById("bar");
+var tabs=document.getElementById("tabs");
+
+/* =========================================================
+   helpers
+   ========================================================= */
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function todayISO(){var d=new Date();return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());}
+function todayYM(){return todayISO().slice(0,7);}
+function p2(n){return n<10?"0"+n:""+n;}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+function yen(n){return "¥"+(Number(n)||0).toLocaleString("ja-JP");}
+function fmtDate(iso){
+  if(!iso) return "";
+  var p=iso.split("-"); if(p.length<3) return iso;
+  var d=new Date(+p[0],+p[1]-1,+p[2]);
+  var w="日月火水木金土"[d.getDay()]||"";
+  return (+p[1])+"月"+(+p[2])+"日（"+w+"）";
+}
+function fmtShort(iso){ if(!iso) return "—"; var p=iso.split("-"); return p[0].slice(2)+"/"+(+p[1])+"/"+(+p[2]); }
+function kata(s){return String(s||"").replace(/[\u3041-\u3096]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+0x60);});}
+function norm(s){return kata(String(s||"").toLowerCase()).replace(/[\s\u3000-]/g,"");}
+function daysSince(iso){
+  if(!iso) return null;
+  var p=iso.split("-"); var d=new Date(+p[0],+p[1]-1,+p[2]);
+  return Math.floor((Date.now()-d.getTime())/86400000);
+}
+function ageFrom(iso){
+  if(!iso) return null;
+  var p=String(iso).split("-"); if(p.length<3) return null;
+  var by=+p[0], bm=+p[1], bd=+p[2];
+  if(!by||!bm||!bd) return null;
+  var n=new Date(), a=n.getFullYear()-by, m=(n.getMonth()+1)-bm;
+  if(m<0 || (m===0 && n.getDate()<bd)) a--;
+  return (a>=0 && a<130) ? a : null;
+}
+function fmtBirth(iso){
+  if(!iso) return "";
+  var p=String(iso).split("-"); if(p.length<3) return iso;
+  return (+p[1])+"/"+(+p[2]);
+}
+/* a chem row is one mix: {part, items:[…], ratio, min}. Older rows used {item}. */
+var PARTS=["根本","中間","毛先","ハイライト","ローライト","ブリーチ","根本（白髪部分）"];
+var PARTCOLOR={"根本":"#4C63F0","中間":"#0EAE9C","毛先":"#F2802A","ハイライト":"#D89600",
+  "ローライト":"#8B4FE0","ブリーチ":"#E8368F","根本（白髪部分）":"#5F7690"};
+var HUES=["#E8368F","#4C63F0","#0EAE9C","#F2802A","#8B4FE0","#D89600","#15AEE0"];
+function partColor(p){ return PARTCOLOR[p] || "#E8368F"; }
+function hueFor(str){
+  var h=0, s=String(str||"");
+  for(var i=0;i<s.length;i++){ h=((h<<5)-h+s.charCodeAt(i))>>>0; }
+  return HUES[h%HUES.length];
+}
+function chemItems(c){
+  if(!c) return [];
+  if(Array.isArray(c.items)) return c.items.map(function(x){return String(x||"").trim();}).filter(Boolean);
+  return c.item&&String(c.item).trim() ? [String(c.item).trim()] : [];
+}
+function chemNames(c){ return chemItems(c).join("　＋　"); }
+function chemText(c){
+  var t=chemItems(c).join(" ＋ ");
+  if(c&&c.ratio) t+=(t?"　":"")+c.ratio;
+  if(c&&c.min) t+=(t?"　":"")+c.min+"分";
+  if(c&&c.part) t=c.part+"："+t;
+  return t;
+}
+function chemEmpty(c){ return !chemItems(c).length && !(c&&c.ratio) && !(c&&c.min); }
+function normChems(list){
+  return (Array.isArray(list)?list:[]).map(function(c){
+    return {part:(c&&c.part)||"", items:chemItems(c), ratio:(c&&c.ratio)||"", min:(c&&c.min)||""};
+  });
+}
+function partOptions(cur){
+  var list=PARTS.slice();
+  if(cur && list.indexOf(cur)<0) list.push(cur);
+  return '<option value=""'+(cur?"":" selected")+'>部位を選ぶ</option>'+
+    list.map(function(p){
+      return '<option value="'+esc(p)+'"'+(p===cur?" selected":"")+'>'+esc(p)+'</option>';
+    }).join("");
+}
+function toast(msg,ms){
+  var old=document.querySelector(".toast"); if(old) old.remove();
+  var t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ if(t.parentNode) t.remove(); }, ms||2200);
+}
+function dbErr(e){
+  var c=e&&e.code;
+  if(c==="quota_exceeded") return "保存できる件数の上限に達しています。古い記録を整理してください。";
+  if(c==="resource_exhausted") return "操作が続きすぎました。少し待ってからもう一度お試しください。";
+  if(c==="not_granted"||c==="capability_disabled") return "このページではデータを保存できません。";
+  return "保存できませんでした。もう一度お試しください。";
+}
+
+/* =========================================================
+   data access
+   ========================================================= */
+function loadCustomers(){
+  return DB.collection("customers").limit(1000).get().then(function(snap){
+    customers=[];
+    snap.forEach(function(d){ var o=d.data()||{}; o.id=d.id; customers.push(o); });
+    sortCustomers();
+  });
+}
+function sortCustomers(){
+  customers.sort(function(a,b){
+    var ka=kata(a.kana||a.name||""), kb=kata(b.kana||b.name||"");
+    return ka<kb?-1:ka>kb?1:0;
+  });
+}
+function loadChart(cid){
+  return DB.doc("charts/"+cid).get().then(function(d){
+    var o=d.exists?(d.data()||{}):{};
+    chart={visits:Array.isArray(o.visits)?o.visits:[]};
+    chart.visits.sort(function(a,b){return (b.date||"")<(a.date||"")?-1:1;});
+  });
+}
+function saveChart(cid){
+  return DB.doc("charts/"+cid).set({visits:chart.visits, updatedAt:new Date().toISOString()});
+}
+function loadPresets(){
+  return DB.doc("meta/presets").get().then(function(d){
+    var o=d.exists?(d.data()||{}):{};
+    presets={chems:Array.isArray(o.chems)?o.chems:[], menus:Array.isArray(o.menus)?o.menus:[]};
+  }).catch(function(){});
+}
+function rememberPresets(menu,chems){
+  var changed=false;
+  if(menu){ String(menu).split(/[+＋,、\/]/).forEach(function(m){
+    m=m.trim(); if(m && presets.menus.indexOf(m)<0){ presets.menus.push(m); changed=true; }
+  });}
+  (chems||[]).forEach(function(c){
+    chemItems(c).forEach(function(n){
+      if(n && presets.chems.indexOf(n)<0){ presets.chems.push(n); changed=true; }
+    });
+  });
+  if(!changed) return Promise.resolve();
+  presets.menus=presets.menus.slice(-120); presets.chems=presets.chems.slice(-300);
+  return DB.doc("meta/presets").set({chems:presets.chems, menus:presets.menus}).catch(function(){});
+}
+function loadColors(){
+  return DB.doc("meta/colors").get().then(function(d){
+    var o=d.exists?(d.data()||{}):{};
+    colors=Array.isArray(o.items)?o.items.filter(function(x){return typeof x==="string"&&x.trim();}):[];
+    sortColors();
+  }).catch(function(){ colors=[]; });
+}
+function sortColors(){
+  colors.sort(function(a,b){ return String(a).localeCompare(String(b),"ja"); });
+}
+function saveColors(){
+  return DB.doc("meta/colors").set({items:colors, updatedAt:new Date().toISOString()});
+}
+function loadMenus(){
+  return DB.doc("meta/menulist").get().then(function(d){
+    var o=d.exists?(d.data()||{}):{};
+    menus=(Array.isArray(o.items)?o.items:[]).map(function(m){
+      if(typeof m==="string") return {name:m, price:0};
+      return {name:String((m&&m.name)||"").trim(), price:Number(m&&m.price)||0};
+    }).filter(function(m){return m.name;});
+    sortMenus();
+  }).catch(function(){ menus=[]; });
+}
+function sortMenus(){
+  menus.sort(function(a,b){ return String(a.name).localeCompare(String(b.name),"ja"); });
+}
+function saveMenus(){
+  return DB.doc("meta/menulist").set({items:menus, updatedAt:new Date().toISOString()});
+}
+function menuOptions(){
+  var seen={}, out=[];
+  menus.map(function(m){return m.name;}).concat(presets.menus).forEach(function(n){
+    n=String(n||"").trim();
+    if(n && !seen[n]){ seen[n]=1; out.push(n); }
+  });
+  return out;
+}
+function chemOptions(){
+  var seen={}, out=[];
+  colors.concat(presets.chems).forEach(function(n){
+    n=String(n||"").trim();
+    if(n && !seen[n]){ seen[n]=1; out.push(n); }
+  });
+  return out;
+}
+
+function loadSales(ym){
+  if(salesCache[ym]) return Promise.resolve(salesCache[ym]);
+  return DB.doc("sales/"+ym).get().then(function(d){
+    var o=d.exists?(d.data()||{}):{};
+    var s={ym:ym, entries:Array.isArray(o.entries)?o.entries:[]};
+    salesCache[ym]=s; return s;
+  });
+}
+function writeSales(ym,entries){
+  salesCache[ym]={ym:ym,entries:entries};
+  return DB.doc("sales/"+ym).set({ym:ym, entries:entries, updatedAt:new Date().toISOString()});
+}
+function salesUpsert(ym,entry){
+  return loadSales(ym).then(function(s){
+    var e=s.entries.filter(function(x){return x.vid!==entry.vid;});
+    e.push(entry);
+    e.sort(function(a,b){return (a.date||"")<(b.date||"")?-1:1;});
+    return writeSales(ym,e);
+  });
+}
+function salesRemove(ym,vid){
+  return loadSales(ym).then(function(s){
+    var e=s.entries.filter(function(x){return x.vid!==vid;});
+    if(e.length===s.entries.length) return;
+    return writeSales(ym,e);
+  });
+}
+
+/* =========================================================
+   photos
+   ========================================================= */
+function draw(src,w0,h0,close){
+  var max=1500, w=w0, h=h0;
+  var sc=Math.min(1, max/Math.max(w,h));
+  w=Math.max(1,Math.round(w*sc)); h=Math.max(1,Math.round(h*sc));
+  var c=document.createElement("canvas"); c.width=w; c.height=h;
+  c.getContext("2d").drawImage(src,0,0,w,h);
+  if(close) close();
+  return new Promise(function(res,rej){
+    c.toBlob(function(b){ b?res(b):rej(new Error("encode")); },"image/jpeg",.82);
+  });
+}
+function viaImgTag(file){
+  return new Promise(function(res,rej){
+    var url=URL.createObjectURL(file);
+    var im=new Image();
+    im.onload=function(){
+      draw(im,im.naturalWidth,im.naturalHeight,function(){URL.revokeObjectURL(url);}).then(res,rej);
+    };
+    im.onerror=function(){ URL.revokeObjectURL(url); rej(new Error("decode")); };
+    im.src=url;
+  });
+}
+function compress(file){
+  if(typeof createImageBitmap!=="function") return viaImgTag(file);
+  return createImageBitmap(file,{imageOrientation:"from-image"}).then(function(img){
+    return draw(img,img.width,img.height,function(){ if(img.close) img.close(); });
+  }).catch(function(){ return viaImgTag(file); });
+}
+/* photo ids -> object URLs. Only the open customer's photos are kept; the rest are revoked. */
+var photoUrls={};
+function blobUrl(id){ return photoUrls[id]||""; }
+function revokePhoto(id){
+  if(photoUrls[id]){ URL.revokeObjectURL(photoUrls[id]); delete photoUrls[id]; }
+}
+function chartPhotoIds(){
+  var a=[];
+  (chart?chart.visits:[]).forEach(function(v){ a=a.concat(v.before||[],v.after||[]); });
+  return a;
+}
+function preloadPhotos(ids){
+  var keep={}; ids.forEach(function(i){ keep[i]=1; });
+  Object.keys(photoUrls).forEach(function(k){ if(!keep[k]) revokePhoto(k); });
+  if(!ASSETS) return Promise.resolve();
+  return Promise.all(ids.filter(function(i){ return !photoUrls[i]; }).map(function(i){
+    return ASSETS.get(i).then(function(b){ if(b && !photoUrls[i]) photoUrls[i]=URL.createObjectURL(b); }).catch(function(){});
+  }));
+}
+
+/* =========================================================
+   shell / routing
+   ========================================================= */
+var ICON={
+  people:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V19"/><circle cx="9" cy="7" r="3.2"/><path d="M22 19v-1.4a3.6 3.6 0 0 0-2.8-3.5"/><path d="M16.2 4.3a3.2 3.2 0 0 1 0 5.6"/></svg>',
+  yen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l6 8 6-8"/><path d="M12 12v8"/><path d="M7.5 14h9"/><path d="M7.5 17.5h9"/></svg>',
+  chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>',
+  tube:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.8h5v6.1l3.3 8.2a3 3 0 0 1-2.8 4.1H9a3 3 0 0 1-2.8-4.1l3.3-8.2z"/><path d="M8 2.8h8"/><path d="M7.2 14.6h9.6"/></svg>'
+};
+
+function renderTabs(){
+  var hide=(S.screen!=="list"&&S.screen!=="sales"&&S.screen!=="colors");
+  tabs.style.display=hide?"none":"flex";
+  if(hide) return;
+  tabs.innerHTML=
+    '<button data-tab="customers"'+(S.tab==="customers"?' aria-current="page"':'')+'>'+ICON.people+'顧客</button>'+
+    '<button data-tab="colors"'+(S.tab==="colors"?' aria-current="page"':'')+'>'+ICON.tube+'登録</button>'+
+    '<button data-tab="sales"'+(S.tab==="sales"?' aria-current="page"':'')+'>'+ICON.yen+'売上</button>';
+  Array.prototype.forEach.call(tabs.querySelectorAll("button"),function(b){
+    b.onclick=function(){
+      S.tab=b.dataset.tab;
+      S.screen = S.tab==="customers"?"list":(S.tab==="colors"?"colors":"sales");
+      render();
+    };
+  });
+}
+
+function setBar(title,left,right){
+  bar.innerHTML="";
+  if(left){
+    var l=document.createElement("button");
+    l.className="barbtn back"; l.innerHTML=ICON.chev+"<span>"+esc(left.label)+"</span>";
+    l.onclick=left.on; bar.appendChild(l);
+  }
+  var h=document.createElement("h1"); h.textContent=title;
+  if(left) h.style.textAlign="center";
+  bar.appendChild(h);
+  if(right){
+    var r=document.createElement("button");
+    r.className="barbtn"; r.textContent=right.label; r.onclick=right.on;
+    if(right.disabled) r.disabled=true;
+    bar.appendChild(r);
+  }else if(left){
+    var sp=document.createElement("span"); sp.style.width="52px"; bar.appendChild(sp);
+  }
+}
+
+function render(){
+  renderTabs();
+  if(!ready){ view.innerHTML='<div class="empty"><span class="spin"></span></div>'; return; }
+  if(!DB){ setBar("カルテ"); view.innerHTML=
+    '<div class="empty"><b>データを読み込めません</b><p>この端末ではデータを保存できない状態です。<br>プライベートブラウズをオフにして、開き直してください。</p></div>'; return; }
+  if(S.screen==="list") return screenList();
+  if(S.screen==="customer") return screenCustomer();
+  if(S.screen==="visit") return screenVisit();
+  if(S.screen==="cform") return screenCustomerForm();
+  if(S.screen==="colors") return screenColors();
+  if(S.screen==="sales") return screenSales();
+}
+
+/* =========================================================
+   screen: customer list
+   ========================================================= */
+function screenList(){
+  setBar("顧客",null,{label:"追加",on:function(){ openCustomerForm(null); }});
+  view.innerHTML='<div class="searchrow"><div class="search">'+ICON.search+
+    '<input id="q" type="search" inputmode="search" autocomplete="off" placeholder="名前・ふりがな・電話番号" value="'+esc(S.q)+'"></div></div>'+
+    '<div class="wrap"><div id="rows"></div></div>';
+  var qi=el("q");
+  qi.addEventListener("input",function(){ S.q=qi.value; fillRows(); });
+  fillRows();
+}
+
+function fillRows(){
+  var box=el("rows"); if(!box) return;
+  var q=norm(S.q);
+  var rows=customers.filter(function(c){
+    if(!q) return true;
+    return norm(c.name).indexOf(q)>=0 || norm(c.kana).indexOf(q)>=0 || norm(c.phone).indexOf(q)>=0;
+  });
+  var html="";
+  if(!customers.length){
+    html='<div class="empty"><b>まだ顧客がいません</b><p>右上の「追加」から最初の顧客を登録します。<br>名前だけでも始められます。</p>'+
+      '<button class="btn primary" id="first" style="max-width:260px;margin:0 auto">顧客を追加</button></div>';
+  }else if(!rows.length){
+    html='<div class="empty"><b>見つかりません</b><p>別の読みや電話番号の一部でも探せます。</p></div>';
+  }else{
+    html='<div class="list">';
+    rows.forEach(function(c){
+      var d=daysSince(c.lastVisitAt);
+      var right = c.lastVisitAt
+        ? fmtShort(c.lastVisitAt)+'<br><span class="ago num">'+(d===0?"今日":d+"日前")+'</span>'
+        : '<span class="ago">未来店</span>';
+      html+='<button class="row" data-id="'+esc(c.id)+'">'+
+        '<span class="initial" style="background:'+hueFor(c.id||c.name)+'">'+esc((c.name||"？").trim().slice(0,1))+'</span>'+
+        '<span class="rowmain"><span class="rowname">'+esc(c.name||"（名前なし）")+'</span>'+
+        (c.kana?'<span class="rowsub">'+esc(c.kana)+'</span>':'')+'</span>'+
+        '<span class="rowright">'+right+'</span></button>';
+    });
+    html+='</div><p class="note">'+rows.length+'名</p>';
+  }
+  box.innerHTML=html;
+  if(el("first")) el("first").onclick=function(){ openCustomerForm(null); };
+  Array.prototype.forEach.call(box.querySelectorAll(".row"),function(b){
+    b.onclick=function(){ openCustomer(b.dataset.id); };
+  });
+}
+
+/* =========================================================
+   screen: customer detail
+   ========================================================= */
+function openCustomer(cid){
+  S.cid=cid; S.screen="customer";
+  view.innerHTML='<div class="empty"><span class="spin"></span></div>'; renderTabs();
+  loadChart(cid).then(function(){ return preloadPhotos(chartPhotoIds()); }).then(render).catch(function(){ chart={visits:[]}; render(); });
+}
+
+function screenCustomer(){
+  var c=customers.filter(function(x){return x.id===S.cid;})[0];
+  if(!c){ S.screen="list"; return render(); }
+  setBar(c.name||"顧客",{label:"顧客",on:function(){S.screen="list";render();}},
+    {label:"編集",on:function(){ openCustomerForm(c); }});
+
+  var last=chart&&chart.visits.length?chart.visits[0]:null;
+  var d=daysSince(c.lastVisitAt);
+  var total=(chart?chart.visits:[]).reduce(function(a,v){return a+(Number(v.price)||0);},0);
+  var age=ageFrom(c.birth);
+  function chip(hue,label,value){
+    return '<div class="chip" style="background:'+hue+'14;border-color:'+hue+'38;color:'+hue+'">'+
+      '<dt>'+label+'</dt><dd class="num">'+value+'</dd></div>';
+  }
+
+  var h='<div class="wrap"><div class="chead">'+
+    '<span class="initial" style="background:'+hueFor(c.id||c.name)+'">'+esc((c.name||"？").trim().slice(0,1))+'</span>'+
+    '<span><h2 class="nm">'+esc(c.name||"（名前なし）")+'</h2>'+
+    (c.kana?'<div class="kn">'+esc(c.kana)+'</div>':'')+'</span></div>'+
+    '<div class="chips">'+
+      (age!==null?chip("#8B4FE0","年齢",age+"歳"):"")+
+      (c.birth?chip("#E8368F","誕生日",esc(fmtBirth(c.birth))):"")+
+      chip("#4C63F0","来店",(chart?chart.visits.length:0)+"回")+
+      chip("#0EAE9C","前回から",(d===null?"—":(d===0?"今日":d+"日")))+
+      chip("#D89600","累計",yen(total))+
+      (c.phone?'<div class="chip" style="background:#15AEE014;border-color:#15AEE038;color:#15AEE0">'+
+        '<dt>電話</dt><dd class="num"><a href="tel:'+esc(c.phone)+'">'+esc(c.phone)+'</a></dd></div>':"")+
+    '</div>';
+
+  if(last && (last.chems||[]).length){
+    h+='<div class="recipe"><div class="rhead"><b>前回のレシピ</b><span>'+esc(fmtDate(last.date))+(last.menu?" ／ "+esc(last.menu):"")+'</span></div>';
+    last.chems.forEach(function(x){
+      var col=partColor(x.part);
+      h+='<div class="chem" style="border-left-color:'+col+'">'+
+        (x.part?'<span class="cp" style="background:'+col+'1F;color:'+col+'">'+esc(x.part)+'</span>':'')+
+        '<span class="chemline"><span class="ci">'+esc(chemNames(x))+'</span>'+
+        (x.ratio?'<span class="cr num" style="color:'+col+'">'+esc(x.ratio)+'</span>':'')+
+        (x.min?'<span class="ct num">'+esc(x.min)+'分</span>':'')+'</span></div>';
+    });
+    if(last.memo) h+='<div class="rmemo">'+esc(last.memo)+'</div>';
+    h+='</div>';
+  }
+
+  if(c.hair||c.caution){
+    h+='<div class="sec"><h2>髪質・注意点</h2><div class="card">'+
+      (c.hair?'<div style="white-space:pre-wrap">'+esc(c.hair)+'</div>':'')+
+      (c.caution?'<div style="white-space:pre-wrap;color:var(--danger);margin-top:'+(c.hair?"8px":"0")+'">'+esc(c.caution)+'</div>':'')+
+      '</div></div>';
+  }
+
+  if(last&&last.next){
+    h+='<div class="sec"><h2>次回の提案</h2><div class="card" style="white-space:pre-wrap">'+esc(last.next)+'</div></div>';
+  }
+
+  h+='<div class="sec"><button class="btn primary big" id="newvisit">＋　来店を記録</button></div>';
+
+  h+='<div class="sec"><h2>来店履歴</h2>';
+  if(!chart||!chart.visits.length){
+    h+='<div class="card" style="color:var(--muted);font-size:.875rem">まだ記録がありません。</div>';
+  }else{
+    h+='<div class="hist">';
+    chart.visits.forEach(function(v){
+      var parts=(v.chems||[]).map(function(x){return x.part;}).filter(Boolean);
+      var dot=parts.length?partColor(parts[0]):"#E8368F";
+      var cs=(v.chems||[]).map(chemText).filter(Boolean).join("　/　");
+      var ph=(v.before||[]).concat(v.after||[]).slice(0,4);
+      h+='<button class="hentry" data-vid="'+esc(v.id)+'" style="--dot:'+dot+'">'+
+        '<span class="htop"><span class="hdate num">'+esc(fmtDate(v.date))+'</span>'+
+        '<span class="hprice num">'+yen(v.price)+'</span></span>'+
+        (v.menu?'<div class="hmenu">'+esc(v.menu)+'</div>':'')+
+        (cs?'<div class="hchem">'+esc(cs)+'</div>':'')+
+        (v.memo?'<div class="hchem" style="color:var(--ink)">'+esc(v.memo)+'</div>':'')+
+        (ph.length?'<span class="thumbs">'+ph.map(function(id){return '<img loading="lazy" src="'+blobUrl(id)+'" alt="">';}).join("")+'</span>':'')+
+        '</button>';
+    });
+    h+='</div>';
+  }
+  h+='</div></div>';
+  view.innerHTML=h;
+
+  el("newvisit").onclick=function(){ openVisit(null); };
+  Array.prototype.forEach.call(view.querySelectorAll(".hentry"),function(b){
+    b.onclick=function(){ openVisit(b.dataset.vid); };
+  });
+  Array.prototype.forEach.call(view.querySelectorAll(".thumbs img"),function(img){
+    img.onclick=function(ev){ ev.stopPropagation(); lightbox(img.src); };
+    img.onerror=function(){ img.style.visibility="hidden"; };
+  });
+}
+
+function lightbox(src){
+  var b=document.createElement("div"); b.id="lightbox";
+  b.innerHTML='<img src="'+esc(src)+'" alt="">';
+  b.onclick=function(){ b.remove(); };
+  document.body.appendChild(b);
+}
+
+/* =========================================================
+   screen: customer form
+   ========================================================= */
+function openCustomerForm(c){
+  cdraft = c ? JSON.parse(JSON.stringify(c)) : {id:null,name:"",kana:"",phone:"",birth:"",hair:"",caution:""};
+  if(cdraft.birth==null) cdraft.birth="";
+  S.screen="cform"; render();
+}
+function screenCustomerForm(){
+  var isNew=!cdraft.id;
+  setBar(isNew?"顧客を追加":"顧客を編集",
+    {label:"戻る",on:function(){ S.screen=isNew?"list":"customer"; render(); }},
+    {label:"保存",on:saveCustomer});
+
+  var a=ageFrom(cdraft.birth);
+  var h='<div class="wrap" style="padding-top:16px">'+
+    '<div class="field"><label for="f_name">名前</label><input id="f_name" value="'+esc(cdraft.name)+'" placeholder="山田 花子"></div>'+
+    '<div class="field"><label for="f_kana">ふりがな</label><input id="f_kana" value="'+esc(cdraft.kana)+'" placeholder="やまだ はなこ"></div>'+
+    '<div class="field"><label for="f_birth">生年月日（任意）</label>'+
+      '<input id="f_birth" type="date" max="'+todayISO()+'" value="'+esc(cdraft.birth)+'">'+
+      '<div class="hint" id="agehint">'+(a!==null?"現在 "+a+"歳":"入力すると年齢が自動で計算されます。")+'</div></div>'+
+    '<div class="field"><label for="f_phone">電話番号（任意）</label><input id="f_phone" type="tel" inputmode="tel" value="'+esc(cdraft.phone)+'"></div>'+
+    '<div class="field"><label for="f_hair">髪質・くせ・履歴</label><textarea id="f_hair" placeholder="硬毛／毛量多め　毛先ブリーチ2回　根元は暗め">'+esc(cdraft.hair)+'</textarea></div>'+
+    '<div class="field"><label for="f_caution">注意点</label><textarea id="f_caution" placeholder="ジアミンで痒みが出たことあり　頭皮が敏感">'+esc(cdraft.caution)+'</textarea>'+
+    '<div class="hint">ここに書いた内容は顧客ページの上部に赤く表示されます。</div></div>';
+
+  if(!isNew){
+    h+='<div class="sec"><button class="btn danger" id="delc">この顧客を削除</button>'+
+      '<p class="note">来店履歴と写真もすべて消えます。取り消せません。</p></div>';
+  }
+  h+='</div>';
+  view.innerHTML=h;
+
+  el("f_birth").addEventListener("change",function(){
+    var n=ageFrom(el("f_birth").value);
+    el("agehint").textContent = n!==null ? "現在 "+n+"歳" : "入力すると年齢が自動で計算されます。";
+  });
+  if(el("delc")) el("delc").onclick=deleteCustomer;
+}
+function saveCustomer(){
+  var name=el("f_name").value.trim();
+  if(!name){ toast("名前を入力してください"); el("f_name").focus(); return; }
+  var data={
+    name:name, kana:el("f_kana").value.trim(), phone:el("f_phone").value.trim(),
+    birth:el("f_birth").value||"", hair:el("f_hair").value, caution:el("f_caution").value
+  };
+  var isNew=!cdraft.id;
+  var id=cdraft.id||uid();
+  var existing=customers.filter(function(x){return x.id===id;})[0];
+  if(existing){ data.lastVisitAt=existing.lastVisitAt||null; data.createdAt=existing.createdAt||new Date().toISOString(); }
+  else { data.lastVisitAt=null; data.createdAt=new Date().toISOString(); }
+
+  DB.doc("customers/"+id).set(data).then(function(){
+    data.id=id;
+    if(existing){ customers[customers.indexOf(existing)]=data; }
+    else { customers.push(data); }
+    sortCustomers();
+    S.cid=id;
+    if(isNew){ chart={visits:[]}; S.screen="customer"; }
+    else { S.screen="customer"; }
+    render(); toast(isNew?"顧客を追加しました":"保存しました");
+  }).catch(function(e){ toast(dbErr(e),3200); });
+}
+function deleteCustomer(){
+  if(!confirm("「"+(cdraft.name||"この顧客")+"」の記録をすべて削除します。取り消せません。")) return;
+  var id=cdraft.id;
+  loadChart(id).then(function(){
+    var ids=[]; var months={};
+    chart.visits.forEach(function(v){
+      (v.before||[]).concat(v.after||[]).forEach(function(a){ids.push(a);});
+      if(v.date) months[v.date.slice(0,7)]=true;
+    });
+    var jobs=[DB.doc("charts/"+id).delete(), DB.doc("customers/"+id).delete()];
+    Object.keys(months).forEach(function(ym){
+      jobs.push(loadSales(ym).then(function(s){
+        var e=s.entries.filter(function(x){return x.cid!==id;});
+        if(e.length!==s.entries.length) return writeSales(ym,e);
+      }));
+    });
+    if(ASSETS) ids.forEach(function(a){ jobs.push(ASSETS.delete(a).catch(function(){})); });
+    return Promise.all(jobs);
+  }).then(function(){
+    customers=customers.filter(function(x){return x.id!==id;});
+    preloadPhotos([]); S.cid=null; S.screen="list"; render(); toast("削除しました");
+  }).catch(function(e){ toast(dbErr(e),3200); });
+}
+
+/* =========================================================
+   screen: visit form
+   ========================================================= */
+function openVisit(vid){
+  S.vid=vid;
+  if(vid){
+    var v=chart.visits.filter(function(x){return x.id===vid;})[0];
+    draft=JSON.parse(JSON.stringify(v));
+    draft.chems=normChems(draft.chems); draft.before=draft.before||[]; draft.after=draft.after||[];
+    if(!draft.chems.length) draft.chems=[{part:"",items:[""],ratio:"",min:""}];
+  }else{
+    draft={id:uid(),date:todayISO(),menu:"",price:"",chems:[{part:"",items:[""],ratio:"",min:""}],
+           memo:"",next:"",before:[],after:[],createdAt:new Date().toISOString()};
+  }
+  S.screen="visit"; render();
+}
+
+function screenVisit(){
+  var isNew=!S.vid;
+  setBar(isNew?"来店を記録":"来店の記録",
+    {label:"戻る",on:function(){ S.screen="customer"; render(); }},
+    {label:"保存",on:saveVisit});
+
+  var prev=null;
+  if(chart){ prev=chart.visits.filter(function(v){return v.id!==draft.id;})[0]||null; }
+
+  var h='<div class="wrap" style="padding-top:16px">'+
+    '<div class="two">'+
+      '<div class="field"><label for="v_date">日付</label><input id="v_date" type="date" value="'+esc(draft.date)+'"></div>'+
+      '<div class="field"><label for="v_price">料金</label><input id="v_price" type="number" inputmode="numeric" min="0" step="100" value="'+esc(draft.price)+'" placeholder="0"></div>'+
+    '</div>'+
+    '<div class="field"><label for="v_menu">メニュー</label><input id="v_menu" list="menulist" value="'+esc(draft.menu)+'" placeholder="カット＋カラー">'+
+      '<datalist id="menulist">'+menuOptions().map(function(m){return '<option value="'+esc(m)+'">';}).join("")+'</datalist>'+
+      '<div class="btnrow"><button class="btn ghost" id="pickmenu">メニューから選ぶ</button></div></div>';
+
+  h+='<div class="sec"><h2>薬剤・配合</h2><div id="chems"></div>'+
+     '<div class="btnrow">'+
+     '<button class="btn ghost" id="pickchem">カラー剤から選ぶ</button>'+
+     '<button class="btn ghost" id="addchem">空の配合を追加</button>'+
+     '</div>'+
+     (prev&&(prev.chems||[]).length?'<div class="btnrow"><button class="btn ghost" id="copyprev">前回の配合をコピー</button></div>':'')+
+     '<p class="note">1つの枠が1つの配合です。混ぜる薬剤は枠内の＋で横に足せます。'+
+     '下は比率（1:1、30g など）と放置時間（分）。</p>'+
+     '<datalist id="chemlist">'+chemOptions().map(function(m){return '<option value="'+esc(m)+'">';}).join("")+'</datalist></div>';
+
+  h+='<div class="sec"><h2>ビフォー</h2><div class="photos" id="ph_before"></div></div>';
+  h+='<div class="sec"><h2>アフター</h2><div class="photos" id="ph_after"></div></div>';
+
+  h+='<div class="sec"><div class="field"><label for="v_memo">施術メモ</label>'+
+     '<textarea id="v_memo" placeholder="ロッド 中2本／根元は明るめに　次は毛先だけ">'+esc(draft.memo)+'</textarea></div>'+
+     '<div class="field"><label for="v_next">次回の提案</label>'+
+     '<textarea id="v_next" style="min-height:60px" placeholder="6週後　根元リタッチ＋トリートメント">'+esc(draft.next)+'</textarea></div></div>';
+
+  if(!isNew){
+    h+='<div class="sec"><button class="btn danger" id="delv">この記録を削除</button></div>';
+  }
+  h+='<input type="file" id="picker" accept="image/*" multiple hidden></div>';
+  view.innerHTML=h;
+
+  renderChems();
+  renderPhotos("before"); renderPhotos("after");
+
+  el("addchem").onclick=function(){ pullForm(); draft.chems.push({part:"",items:[""],ratio:"",min:""}); renderChems(); focusLastChem(); };
+  el("pickchem").onclick=openChemSheet;
+  el("pickmenu").onclick=openMenuSheet;
+  if(el("copyprev")) el("copyprev").onclick=function(){
+    pullForm();
+    draft.chems=normChems(prev.chems);
+    if(!draft.chems.length) draft.chems=[{part:"",items:[""],ratio:"",min:""}];
+    if(!draft.menu) draft.menu=prev.menu||"";
+    renderChems(); el("v_menu").value=draft.menu; toast("前回の配合を読み込みました");
+  };
+  if(el("delv")) el("delv").onclick=deleteVisit;
+}
+
+function focusLastChem(){
+  var rows=view.querySelectorAll(".chemrow .ag input");
+  if(rows.length) rows[rows.length-1].focus();
+}
+function renderChems(){
+  var box=el("chems"); if(!box) return;
+  box.innerHTML=draft.chems.map(function(c,i){
+    var items=(Array.isArray(c.items)&&c.items.length)?c.items:[""];
+    var col=partColor(c.part);
+    return '<div class="chemrow" data-i="'+i+'"'+(c.part?' style="border-color:'+col+'59"':'')+'>'+
+      '<select class="cpart'+(c.part?"":" none")+'"'+
+        (c.part?' style="background:'+col+'14;border-color:'+col+'45;color:'+col+'"':'')+'>'+
+        partOptions(c.part||"")+'</select>'+
+      '<div class="cagents">'+
+        items.map(function(n,j){
+          return '<span class="ag"><input list="chemlist" data-j="'+j+'" placeholder="薬剤" value="'+esc(n)+'">'+
+            (items.length>1?'<button class="agdel" data-j="'+j+'" aria-label="この薬剤を外す">×</button>':'')+'</span>';
+        }).join("")+
+        '<button class="agadd" aria-label="混ぜる薬剤を足す">＋</button>'+
+      '</div>'+
+      '<div class="cmeta">'+
+        '<input class="cratio" placeholder="1:1" value="'+esc(c.ratio||"")+'">'+
+        '<input class="cmin" inputmode="numeric" placeholder="分" value="'+esc(c.min||"")+'">'+
+        '<button class="del" aria-label="この配合を削除">×</button>'+
+      '</div></div>';
+  }).join("");
+
+  Array.prototype.forEach.call(box.querySelectorAll(".chemrow"),function(row){
+    var i=+row.dataset.i;
+    var sel=row.querySelector(".cpart");
+    sel.onchange=function(){
+      draft.chems[i].part=sel.value;
+      pullForm();
+      renderChems();
+    };
+    row.querySelector(".agadd").onclick=function(){
+      pullForm();
+      draft.chems[i].items.push("");
+      renderChems();
+      var ins=view.querySelectorAll('.chemrow[data-i="'+i+'"] .ag input');
+      if(ins.length) ins[ins.length-1].focus();
+    };
+    row.querySelector(".del").onclick=function(){
+      pullForm();
+      draft.chems.splice(i,1);
+      if(!draft.chems.length) draft.chems.push({part:"",items:[""],ratio:"",min:""});
+      renderChems();
+    };
+    Array.prototype.forEach.call(row.querySelectorAll(".agdel"),function(b){
+      b.onclick=function(){
+        pullForm();
+        draft.chems[i].items.splice(+b.dataset.j,1);
+        if(!draft.chems[i].items.length) draft.chems[i].items=[""];
+        renderChems();
+      };
+    });
+  });
+}
+function pullForm(){
+  if(el("v_date")) draft.date=el("v_date").value||todayISO();
+  if(el("v_price")) draft.price=el("v_price").value;
+  if(el("v_menu")) draft.menu=el("v_menu").value.trim();
+  if(el("v_memo")) draft.memo=el("v_memo").value;
+  if(el("v_next")) draft.next=el("v_next").value;
+  var rows=view.querySelectorAll(".chemrow");
+  if(rows.length){
+    draft.chems=Array.prototype.map.call(rows,function(r){
+      return {
+        part:r.querySelector(".cpart").value,
+        items:Array.prototype.map.call(r.querySelectorAll(".ag input"),function(x){return x.value.trim();}),
+        ratio:r.querySelector(".cratio").value.trim(),
+        min:r.querySelector(".cmin").value.trim()
+      };
+    });
+  }
+}
+
+/* ---- chemical picker sheet ---- */
+function openChemSheet(){
+  pullForm();
+  sheetSel={};
+  var back=document.createElement("div");
+  back.className="sheetback";
+  back.innerHTML='<div class="sheet" role="dialog" aria-label="カラー剤を選ぶ">'+
+    '<div class="shead"><button class="barbtn" id="sh_cancel">閉じる</button>'+
+    '<b>カラー剤を選ぶ</b>'+
+    '<button class="barbtn" id="sh_ok">追加</button></div>'+
+    '<div class="sbody"><p class="note" style="margin:0 0 10px">選んだ薬剤は1つの配合としてまとめて入ります。</p>'+
+    '<div class="search" style="margin-bottom:10px">'+ICON.search+
+      '<input id="sh_q" type="search" autocomplete="off" placeholder="薬剤名で絞り込む"></div>'+
+    '<div id="sh_list"></div></div></div>';
+  document.body.appendChild(back);
+
+  function fill(){
+    var q=norm(el("sh_q").value);
+    var list=chemOptions().filter(function(n){ return !q || norm(n).indexOf(q)>=0; });
+    var box=el("sh_list");
+    if(!chemOptions().length){
+      box.innerHTML='<div class="empty" style="padding:30px 8px"><b>まだ登録がありません</b>'+
+        '<p>下のタブの「カラー剤」で、よく使う薬剤を登録できます。</p></div>';
+      return;
+    }
+    if(!list.length){ box.innerHTML='<div class="empty" style="padding:30px 8px"><p>見つかりません。</p></div>'; return; }
+    box.innerHTML='<div class="list">'+list.map(function(n){
+      return '<button class="row pick'+(sheetSel[n]?" on":"")+'" data-n="'+esc(n)+'">'+
+        '<span class="tick">'+(sheetSel[n]?"✓":"")+'</span>'+
+        '<span class="rowmain"><span class="rowname">'+esc(n)+'</span></span></button>';
+    }).join("")+'</div>';
+    Array.prototype.forEach.call(box.querySelectorAll(".pick"),function(b){
+      b.onclick=function(){
+        var n=b.dataset.n;
+        if(sheetSel[n]) delete sheetSel[n]; else sheetSel[n]=1;
+        fill();
+      };
+    });
+  }
+  function close(){ back.remove(); }
+
+  el("sh_q").addEventListener("input",fill);
+  el("sh_cancel").onclick=close;
+  back.addEventListener("click",function(e){ if(e.target===back) close(); });
+  el("sh_ok").onclick=function(){
+    var picked=Object.keys(sheetSel);
+    if(!picked.length){ close(); return; }
+    draft.chems=draft.chems.filter(function(c){return !chemEmpty(c);});
+    draft.chems.push({part:"", items:picked, ratio:"", min:""});
+    close(); renderChems();
+    var rows=view.querySelectorAll(".chemrow .cratio");
+    if(rows.length) rows[rows.length-1].focus();
+  };
+  fill();
+}
+
+/* =========================================================
+   screen: registry (colour products + menus)
+   ========================================================= */
+function screenColors(){
+  setBar("登録");
+  var seg=(S.reg==="menus"||S.reg==="backup")?S.reg:"colors";
+  view.innerHTML='<div class="wrap" style="padding-top:14px">'+
+    '<div class="seg">'+
+      '<button data-s="colors"'+(seg==="colors"?' aria-current="true"':'')+'>カラー剤</button>'+
+      '<button data-s="menus"'+(seg==="menus"?' aria-current="true"':'')+'>メニュー</button>'+
+      '<button data-s="backup"'+(seg==="backup"?' aria-current="true"':'')+'>バックアップ</button>'+
+    '</div><div id="reg_body"></div></div>';
+  Array.prototype.forEach.call(view.querySelectorAll(".seg button"),function(b){
+    b.onclick=function(){ S.reg=b.dataset.s; screenColors(); };
+  });
+  if(seg==="menus") regMenus(); else if(seg==="backup") regBackup(); else regColors();
+}
+
+function regColors(){
+  el("reg_body").innerHTML='<div class="field" style="margin-top:16px"><label for="cl_new">薬剤を登録</label>'+
+    '<div class="two" style="gap:8px"><input id="cl_new" placeholder="イルミナ オーシャン 8" autocomplete="off">'+
+    '<button class="btn primary" id="cl_add" style="flex:0 0 78px">追加</button></div>'+
+    '<div class="hint">商品名をそのまま入れてください。パーマ液やトリートメントも登録できます。</div></div>'+
+    '<div id="cl_list"></div>';
+
+  function add(){
+    var v=el("cl_new").value.trim();
+    if(!v) return;
+    if(colors.indexOf(v)>=0){ toast("すでに登録されています"); return; }
+    colors.push(v); sortColors();
+    el("cl_new").value="";
+    fill();
+    saveColors().catch(function(e){ toast(dbErr(e),3200); });
+  }
+  el("cl_add").onclick=add;
+  el("cl_new").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); add(); } });
+
+  function fill(){
+    var box=el("cl_list"); if(!box) return;
+    if(!colors.length){
+      box.innerHTML='<div class="empty"><b>まだ登録がありません</b>'+
+        '<p>よく使う薬剤を登録しておくと、来店記録の「カラー剤から選ぶ」で<br>タップするだけで入力できます。</p></div>';
+      return;
+    }
+    box.innerHTML='<div class="sec"><h2>登録済み '+colors.length+'件</h2><div class="list">'+
+      colors.map(function(n,i){
+        return '<div class="row" style="cursor:default"><span class="rowmain"><span class="rowname">'+esc(n)+'</span></span>'+
+          '<button class="del" data-i="'+i+'" aria-label="削除">×</button></div>';
+      }).join("")+'</div></div>';
+    Array.prototype.forEach.call(box.querySelectorAll(".del"),function(b){
+      b.onclick=function(){
+        var i=+b.dataset.i;
+        if(!confirm("「"+colors[i]+"」を登録から削除しますか？\n過去の来店記録は消えません。")) return;
+        colors.splice(i,1); fill();
+        saveColors().catch(function(e){ toast(dbErr(e),3200); });
+      };
+    });
+  }
+  fill();
+}
+
+function regMenus(){
+  el("reg_body").innerHTML='<div class="field" style="margin-top:16px"><label for="mn_new">メニューを登録</label>'+
+    '<input id="mn_new" placeholder="カット＋カラー セット" autocomplete="off" style="margin-bottom:8px">'+
+    '<div class="two" style="gap:8px"><input id="mn_price" type="number" inputmode="numeric" min="0" step="100" placeholder="料金（任意）">'+
+    '<button class="btn primary" id="mn_add" style="flex:0 0 78px">追加</button></div>'+
+    '<div class="hint">セットもそのまま1つのメニューとして登録できます。料金を入れておくと、選んだときに自動で入ります。</div></div>'+
+    '<div id="mn_list"></div>';
+
+  function add(){
+    var v=el("mn_new").value.trim();
+    if(!v) return;
+    if(menus.some(function(m){return m.name===v;})){ toast("すでに登録されています"); return; }
+    menus.push({name:v, price:Number(el("mn_price").value)||0});
+    sortMenus();
+    el("mn_new").value=""; el("mn_price").value="";
+    fill();
+    saveMenus().catch(function(e){ toast(dbErr(e),3200); });
+  }
+  el("mn_add").onclick=add;
+  el("mn_price").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); add(); } });
+
+  function fill(){
+    var box=el("mn_list"); if(!box) return;
+    if(!menus.length){
+      box.innerHTML='<div class="empty"><b>まだ登録がありません</b>'+
+        '<p>よく使うメニューを登録しておくと、来店記録の「メニューから選ぶ」で<br>タップするだけで料金まで入ります。</p></div>';
+      return;
+    }
+    box.innerHTML='<div class="sec"><h2>登録済み '+menus.length+'件</h2><div class="list">'+
+      menus.map(function(m,i){
+        return '<div class="row" style="cursor:default"><span class="rowmain"><span class="rowname">'+esc(m.name)+'</span></span>'+
+          '<span class="rowright num" style="font-size:.875rem;color:var(--ink);font-weight:600">'+(m.price?yen(m.price):"—")+'</span>'+
+          '<button class="del" data-i="'+i+'" aria-label="削除">×</button></div>';
+      }).join("")+'</div></div>';
+    Array.prototype.forEach.call(box.querySelectorAll(".del"),function(b){
+      b.onclick=function(){
+        var i=+b.dataset.i;
+        if(!confirm("「"+menus[i].name+"」を登録から削除しますか？\n過去の来店記録は消えません。")) return;
+        menus.splice(i,1); fill();
+        saveMenus().catch(function(e){ toast(dbErr(e),3200); });
+      };
+    });
+  }
+  fill();
+}
+
+/* ---- menu picker sheet ---- */
+function openMenuSheet(){
+  pullForm();
+  sheetSel={};
+  var back=document.createElement("div");
+  back.className="sheetback";
+  back.innerHTML='<div class="sheet" role="dialog" aria-label="メニューを選ぶ">'+
+    '<div class="shead"><button class="barbtn" id="mh_cancel">閉じる</button>'+
+    '<b>メニューを選ぶ</b>'+
+    '<button class="barbtn" id="mh_ok">決定</button></div>'+
+    '<div class="sbody"><p class="note" style="margin:0 0 10px">複数選ぶと「＋」でつながり、料金は合計が入ります。</p>'+
+    '<div id="mh_list"></div></div></div>';
+  document.body.appendChild(back);
+
+  function fill(){
+    var box=el("mh_list");
+    if(!menus.length){
+      box.innerHTML='<div class="empty" style="padding:30px 8px"><b>まだ登録がありません</b>'+
+        '<p>下のタブの「登録」→「メニュー」から追加できます。</p></div>';
+      return;
+    }
+    box.innerHTML='<div class="list">'+menus.map(function(m,i){
+      return '<button class="row pick'+(sheetSel[i]?" on":"")+'" data-i="'+i+'">'+
+        '<span class="tick">'+(sheetSel[i]?"✓":"")+'</span>'+
+        '<span class="rowmain"><span class="rowname">'+esc(m.name)+'</span></span>'+
+        '<span class="rowright num" style="font-size:.875rem;color:var(--ink);font-weight:600">'+(m.price?yen(m.price):"")+'</span></button>';
+    }).join("")+'</div>';
+    Array.prototype.forEach.call(box.querySelectorAll(".pick"),function(b){
+      b.onclick=function(){
+        var i=b.dataset.i;
+        if(sheetSel[i]) delete sheetSel[i]; else sheetSel[i]=1;
+        fill();
+      };
+    });
+  }
+  function close(){ back.remove(); }
+
+  el("mh_cancel").onclick=close;
+  back.addEventListener("click",function(e){ if(e.target===back) close(); });
+  el("mh_ok").onclick=function(){
+    var keys=Object.keys(sheetSel).map(Number).sort(function(a,b){return a-b;});
+    if(!keys.length){ close(); return; }
+    var names=[], sum=0;
+    keys.forEach(function(i){ names.push(menus[i].name); sum+=Number(menus[i].price)||0; });
+    draft.menu=names.join("＋");
+    if(sum) draft.price=String(sum);
+    close();
+    el("v_menu").value=draft.menu;
+    if(sum) el("v_price").value=draft.price;
+  };
+  fill();
+}
+
+/* ---- photos in form ---- */
+function renderPhotos(kind){
+  var box=el("ph_"+kind); if(!box) return;
+  var list=draft[kind]||[];
+  box.innerHTML=list.map(function(id,i){
+    return '<span class="photo"><img src="'+blobUrl(id)+'" alt="" data-i="'+i+'"><button data-i="'+i+'" aria-label="写真を削除">×</button></span>';
+  }).join("")+'<button class="addphoto" data-kind="'+kind+'"><span>＋</span>写真</button>';
+
+  box.querySelector(".addphoto").onclick=function(){ pickPhotos(kind); };
+  Array.prototype.forEach.call(box.querySelectorAll(".photo button"),function(b){
+    b.onclick=function(){
+      var i=+b.dataset.i;
+      if(!confirm("この写真を削除しますか？")) return;
+      var id=draft[kind][i];
+      draft[kind].splice(i,1); renderPhotos(kind);
+      if(ASSETS) ASSETS.delete(id).catch(function(){});
+    };
+  });
+  Array.prototype.forEach.call(box.querySelectorAll(".photo img"),function(img){
+    img.onclick=function(){ lightbox(img.src); };
+    img.onerror=function(){ img.style.visibility="hidden"; };
+  });
+}
+function pickPhotos(kind){
+  if(!ASSETS){ toast("このページでは写真を保存できません",3000); return; }
+  var picker=el("picker");
+  picker.value="";
+  picker.onchange=function(){
+    var files=Array.prototype.slice.call(picker.files||[]);
+    if(!files.length) return;
+    pullForm();
+    var btn=el("ph_"+kind).querySelector(".addphoto");
+    btn.innerHTML='<span class="spin"></span>';
+    var chain=Promise.resolve();
+    files.slice(0,6).forEach(function(f){
+      chain=chain.then(function(){
+        return compress(f).then(function(b){
+          return ASSETS.upload(b,{type:"image/jpeg"});
+        }).then(function(r){
+          draft[kind].push(r.id);
+        }).catch(function(e){
+          var c=e&&e.code;
+          toast(c==="too_large"?"写真のサイズが大きすぎます":
+                c==="quota_or_state"?"写真の保存容量がいっぱいです":
+                "写真を保存できませんでした",3000);
+        });
+      });
+    });
+    chain.then(function(){ renderPhotos(kind); });
+  };
+  picker.click();
+}
+
+/* ---- save / delete visit ---- */
+function saveVisit(){
+  pullForm();
+  draft.chems=normChems(draft.chems).filter(function(c){return !chemEmpty(c);});
+  if(!draft.date){ toast("日付を入力してください"); return; }
+
+  var c=customers.filter(function(x){return x.id===S.cid;})[0];
+  var oldV=chart.visits.filter(function(v){return v.id===draft.id;})[0];
+  var oldYM=oldV&&oldV.date?oldV.date.slice(0,7):null;
+  var ym=draft.date.slice(0,7);
+
+  if(oldV){ chart.visits[chart.visits.indexOf(oldV)]=draft; }
+  else { chart.visits.push(draft); }
+  chart.visits.sort(function(a,b){return (b.date||"")<(a.date||"")?-1:1;});
+
+  var newest=chart.visits[0]?chart.visits[0].date:null;
+
+  var entry={vid:draft.id, cid:S.cid, name:c?c.name:"", date:draft.date,
+             menu:draft.menu||"", price:Number(draft.price)||0};
+
+  var jobs=[saveChart(S.cid)];
+  if(oldYM && oldYM!==ym) jobs.push(salesRemove(oldYM,draft.id));
+  jobs.push(salesUpsert(ym,entry));
+  if(c && c.lastVisitAt!==newest){
+    c.lastVisitAt=newest;
+    jobs.push(DB.doc("customers/"+S.cid).update({lastVisitAt:newest}).catch(function(){}));
+  }
+  jobs.push(rememberPresets(draft.menu,draft.chems));
+
+  Promise.all(jobs).then(function(){
+    S.screen="customer"; render(); toast("保存しました");
+  }).catch(function(e){ toast(dbErr(e),3200); });
+}
+
+function deleteVisit(){
+  if(!confirm("この来店記録を削除しますか？写真も消えます。")) return;
+  var v=chart.visits.filter(function(x){return x.id===draft.id;})[0];
+  var photos=((v&&v.before)||[]).concat((v&&v.after)||[]);
+  var ym=v&&v.date?v.date.slice(0,7):null;
+  chart.visits=chart.visits.filter(function(x){return x.id!==draft.id;});
+  var c=customers.filter(function(x){return x.id===S.cid;})[0];
+  var newest=chart.visits[0]?chart.visits[0].date:null;
+
+  var jobs=[saveChart(S.cid)];
+  if(ym) jobs.push(salesRemove(ym,draft.id));
+  if(c){ c.lastVisitAt=newest; jobs.push(DB.doc("customers/"+S.cid).update({lastVisitAt:newest}).catch(function(){})); }
+  if(ASSETS) photos.forEach(function(id){ jobs.push(ASSETS.delete(id).catch(function(){})); });
+
+  Promise.all(jobs).then(function(){
+    S.screen="customer"; render(); toast("削除しました");
+  }).catch(function(e){ toast(dbErr(e),3200); });
+}
+
+/* =========================================================
+   screen: sales
+   ========================================================= */
+function shiftYM(ym,n){
+  var y=+ym.slice(0,4), m=+ym.slice(5,7)+n;
+  y+=Math.floor((m-1)/12); m=((m-1)%12+12)%12+1;
+  return y+"-"+p2(m);
+}
+function screenSales(){
+  setBar("売上",null,{label:"書き出し",on:exportCSV});
+  var ym=S.ym;
+  view.innerHTML='<div class="wrap"><div class="monthnav">'+
+    '<button id="prev" aria-label="前の月">‹</button><b class="num">'+ym.slice(0,4)+'年'+(+ym.slice(5,7))+'月</b>'+
+    '<button id="next" aria-label="次の月">›</button></div>'+
+    '<div class="empty"><span class="spin"></span></div></div>';
+  el("prev").onclick=function(){ S.ym=shiftYM(ym,-1); screenSales(); };
+  el("next").onclick=function(){ S.ym=shiftYM(ym,1); screenSales(); };
+
+  loadSales(ym).then(function(s){
+    if(S.ym!==ym||S.screen!=="sales") return;
+    var total=s.entries.reduce(function(a,e){return a+(Number(e.price)||0);},0);
+    var n=s.entries.length;
+    var avg=n?Math.round(total/n):0;
+    var byMenu={};
+    s.entries.forEach(function(e){
+      (e.menu||"未設定").split(/[+＋,、\/]/).forEach(function(m){
+        m=m.trim()||"未設定";
+        byMenu[m]=(byMenu[m]||0)+(Number(e.price)||0)/Math.max(1,(e.menu||"x").split(/[+＋,、\/]/).length);
+      });
+    });
+    var menuBars=Object.keys(byMenu).map(function(k){return {k:k,v:Math.round(byMenu[k])};})
+      .sort(function(a,b){return b.v-a.v;}).slice(0,8);
+    var max=menuBars.length?menuBars[0].v:1;
+
+    var h='<div class="wrap"><div class="monthnav">'+
+      '<button id="prev" aria-label="前の月">‹</button><b class="num">'+ym.slice(0,4)+'年'+(+ym.slice(5,7))+'月</b>'+
+      '<button id="next" aria-label="次の月">›</button></div>'+
+      '<div class="stats">'+
+      '<div class="stat" style="background:#E8368F14;border-color:#E8368F38;color:#E8368F"><b class="num">'+yen(total)+'</b><span>売上</span></div>'+
+      '<div class="stat" style="background:#4C63F014;border-color:#4C63F038;color:#4C63F0"><b class="num">'+n+'</b><span>来店</span></div>'+
+      '<div class="stat" style="background:#0EAE9C14;border-color:#0EAE9C38;color:#0EAE9C"><b class="num">'+yen(avg)+'</b><span>客単価</span></div></div>';
+
+    if(!n){
+      h+='<div class="empty"><b>この月の記録はありません</b><p>顧客ページから来店を記録すると、ここに集計されます。</p></div></div>';
+      view.innerHTML=h; bindMonth(ym); return;
+    }
+
+    h+='<div class="sec"><h2>メニュー別</h2><div class="card bars">';
+    menuBars.forEach(function(m,i){
+      var col=HUES[i%HUES.length];
+      h+='<div class="bar"><div class="bartop"><span style="color:'+col+'">'+esc(m.k)+'</span><span class="num">'+yen(m.v)+'</span></div>'+
+        '<div class="track"><div class="fill" style="width:'+Math.max(4,Math.round(m.v/max*100))+'%;background:'+col+'"></div></div></div>';
+    });
+    h+='</div></div>';
+
+    h+='<div class="sec"><h2>明細</h2><div class="list">';
+    s.entries.slice().reverse().forEach(function(e){
+      h+='<button class="row" data-cid="'+esc(e.cid)+'">'+
+        '<span class="initial" style="background:'+hueFor(e.cid||e.name)+'">'+esc((e.name||"？").trim().slice(0,1))+'</span>'+
+        '<span class="rowmain">'+
+        '<span class="rowname">'+esc(e.name||"（削除済み）")+'</span>'+
+        '<span class="rowsub">'+esc(fmtShort(e.date))+(e.menu?"　"+esc(e.menu):"")+'</span></span>'+
+        '<span class="rowright num" style="font-size:.9375rem;color:var(--ink);font-weight:800">'+yen(e.price)+'</span></button>';
+    });
+    h+='</div></div></div>';
+    view.innerHTML=h;
+    bindMonth(ym);
+    Array.prototype.forEach.call(view.querySelectorAll(".row"),function(b){
+      b.onclick=function(){ if(b.dataset.cid) openCustomer(b.dataset.cid); };
+    });
+  }).catch(function(){
+    if(S.ym===ym) toast("集計を読み込めませんでした");
+  });
+}
+function bindMonth(ym){
+  el("prev").onclick=function(){ S.ym=shiftYM(ym,-1); screenSales(); };
+  el("next").onclick=function(){ S.ym=shiftYM(ym,1); screenSales(); };
+}
+
+/* =========================================================
+   CSV export
+   ========================================================= */
+function csvCell(v){
+  var s=String(v==null?"":v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function exportCSV(){
+  if(!DL){ toast("この画面ではファイルを保存できません",3000); return; }
+  toast("書き出しています…",6000);
+  var rows=[["日付","顧客名","ふりがな","生年月日","年齢","電話","メニュー","料金","薬剤","施術メモ","次回の提案","髪質","注意点"]];
+  var chain=Promise.resolve();
+  var all=[];
+  customers.forEach(function(c){
+    var a=ageFrom(c.birth);
+    chain=chain.then(function(){
+      return DB.doc("charts/"+c.id).get().then(function(d){
+        var o=d.exists?(d.data()||{}):{};
+        (o.visits||[]).forEach(function(v){
+          all.push([v.date||"",c.name||"",c.kana||"",c.birth||"",a===null?"":a,c.phone||"",v.menu||"",Number(v.price)||0,
+            (v.chems||[]).map(chemText).filter(Boolean).join(" / "),
+            v.memo||"",v.next||"",c.hair||"",c.caution||""]);
+        });
+      }).catch(function(){});
+    });
+  });
+  chain.then(function(){
+    all.sort(function(a,b){return (a[0]<b[0]?-1:1);});
+    rows=rows.concat(all);
+    var csv="\ufeff"+rows.map(function(r){return r.map(csvCell).join(",");}).join("\r\n");
+    return DL.save({filename:"karte-"+todayISO()+".csv", data:csv});
+  }).then(function(){
+    toast("書き出しました");
+  }).catch(function(e){
+    if(e&&e.code==="declined") { var t=document.querySelector(".toast"); if(t) t.remove(); return; }
+    toast("書き出せませんでした",3000);
+  });
+}
+
+/* =========================================================
+   local storage (IndexedDB)
+   Same shape as the former claude.ai runtime, so screens stay unchanged:
+   DB.doc(path).get/set/update/delete, DB.collection(name).limit(n).get(),
+   ASSETS.upload/get/delete, DL.save.
+   ========================================================= */
+var IDB=null;
+function idbOpen(){
+  return new Promise(function(res,rej){
+    if(!window.indexedDB){ rej(new Error("no-idb")); return; }
+    var r;
+    try{ r=indexedDB.open("karte",1); }catch(e){ rej(e); return; }
+    r.onupgradeneeded=function(){
+      var d=r.result;
+      if(!d.objectStoreNames.contains("docs")) d.createObjectStore("docs");
+      if(!d.objectStoreNames.contains("blobs")) d.createObjectStore("blobs");
+    };
+    r.onsuccess=function(){ res(r.result); };
+    r.onerror=function(){ rej(r.error); };
+    r.onblocked=function(){ rej(new Error("blocked")); };
+  });
+}
+function idbError(e){
+  var x=new Error((e&&e.message)||"idb");
+  if(e&&e.name==="QuotaExceededError") x.code="quota_exceeded";
+  return x;
+}
+/* run fn(store) in one transaction; resolves with the last request's result once committed */
+function idbTx(stores,mode,fn){
+  return new Promise(function(res,rej){
+    var tx, out;
+    try{ tx=IDB.transaction(stores,mode); }catch(e){ rej(idbError(e)); return; }
+    var q=fn(Array.isArray(stores)?stores.map(function(n){return tx.objectStore(n);}):tx.objectStore(stores));
+    if(q && "onsuccess" in q) q.onsuccess=function(){ out=q.result; };
+    tx.oncomplete=function(){ res(out); };
+    tx.onerror=function(){ rej(idbError(tx.error)); };
+    tx.onabort=function(){ rej(idbError(tx.error)); };
+  });
+}
+function clone(o){ return o===undefined?undefined:JSON.parse(JSON.stringify(o)); }
+function snapDoc(id,v){
+  return {id:id, exists:v!==undefined, data:function(){ return clone(v); }};
+}
+var LocalDB={
+  doc:function(path){
+    var id=path.slice(path.indexOf("/")+1);
+    return {
+      get:function(){
+        return idbTx("docs","readonly",function(s){ return s.get(path); })
+          .then(function(v){ return snapDoc(id,v); });
+      },
+      set:function(o){
+        return idbTx("docs","readwrite",function(s){ s.put(clone(o),path); });
+      },
+      update:function(o){
+        return idbTx("docs","readwrite",function(s){
+          var g=s.get(path);
+          g.onsuccess=function(){
+            if(g.result===undefined) return;
+            var v=g.result; Object.keys(o).forEach(function(k){ v[k]=clone(o[k]); });
+            s.put(v,path);
+          };
+        });
+      },
+      delete:function(){
+        return idbTx("docs","readwrite",function(s){ s.delete(path); });
+      }
+    };
+  },
+  collection:function(name){
+    var n=100000;
+    var q={
+      limit:function(k){ n=k; return q; },
+      get:function(){
+        var range=IDBKeyRange.bound(name+"/",name+"/￿");
+        var keys, vals;
+        return idbTx("docs","readonly",function(s){
+          var a=s.getAllKeys(range,n); a.onsuccess=function(){ keys=a.result; };
+          var b=s.getAll(range,n); b.onsuccess=function(){ vals=b.result; };
+        }).then(function(){
+          var docs=keys.map(function(k,i){ return snapDoc(String(k).slice(name.length+1),vals[i]); });
+          return {docs:docs, size:docs.length, empty:!docs.length,
+                  forEach:function(f){ docs.forEach(f); }};
+        });
+      }
+    };
+    return q;
+  }
+};
+/* photos are stored as {type, buf:ArrayBuffer} (safer than raw Blob on older iOS) */
+function toRec(blob){
+  return blob.arrayBuffer().then(function(buf){ return {type:blob.type||"image/jpeg", buf:buf}; });
+}
+function fromRec(r){ return r ? new Blob([r.buf],{type:r.type||"image/jpeg"}) : null; }
+var LocalAssets={
+  upload:function(blob){
+    var id=uid();
+    return toRec(blob).then(function(rec){
+      return idbTx("blobs","readwrite",function(s){ s.put(rec,id); });
+    }).then(function(){
+      photoUrls[id]=URL.createObjectURL(blob);
+      return {id:id};
+    });
+  },
+  get:function(id){
+    return idbTx("blobs","readonly",function(s){ return s.get(id); }).then(fromRec);
+  },
+  delete:function(id){
+    revokePhoto(id);
+    return idbTx("blobs","readwrite",function(s){ s.delete(id); });
+  }
+};
+var LocalDL={
+  save:function(o){
+    var blob=o.data instanceof Blob ? o.data : new Blob([o.data],{type:o.type||"text/csv;charset=utf-8"});
+    var u=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=u; a.download=o.filename; a.rel="noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(u); },60000);
+    return Promise.resolve();
+  }
+};
+
+/* =========================================================
+   backup (ZIP, stored / no compression — dependency-free)
+   data.json holds every doc; photos/<id> holds each photo.
+   ========================================================= */
+var CRC_T=null;
+function crc32(u8){
+  if(!CRC_T){
+    CRC_T=new Uint32Array(256);
+    for(var n=0;n<256;n++){ var c=n; for(var k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; CRC_T[n]=c>>>0; }
+  }
+  var crc=0xFFFFFFFF;
+  for(var i=0;i<u8.length;i++) crc=CRC_T[(crc^u8[i])&255]^(crc>>>8);
+  return (crc^0xFFFFFFFF)>>>0;
+}
+function zipStore(files){
+  var enc=new TextEncoder(), parts=[], central=[], off=0, csize=0;
+  var d=new Date();
+  var dosTime=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1);
+  var dosDate=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate();
+  files.forEach(function(f){
+    var nm=enc.encode(f.name), crc=crc32(f.data), sz=f.data.length;
+    var h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true);
+    h.setUint16(8,0,true); h.setUint16(10,dosTime,true); h.setUint16(12,dosDate,true);
+    h.setUint32(14,crc,true); h.setUint32(18,sz,true); h.setUint32(22,sz,true);
+    h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer),nm,f.data);
+    var c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true);
+    c.setUint16(10,0,true); c.setUint16(12,dosTime,true); c.setUint16(14,dosDate,true);
+    c.setUint32(16,crc,true); c.setUint32(20,sz,true); c.setUint32(24,sz,true);
+    c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer),nm);
+    csize+=46+nm.length;
+    off+=30+nm.length+sz;
+  });
+  var e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true);
+  e.setUint32(12,csize,true); e.setUint32(16,off,true);
+  return new Blob(parts.concat(central,[new Uint8Array(e.buffer)]),{type:"application/zip"});
+}
+function inflateRaw(u8){
+  if(typeof DecompressionStream!=="function") return Promise.reject(new Error("compressed"));
+  var ds=new DecompressionStream("deflate-raw");
+  return new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer()
+    .then(function(b){ return new Uint8Array(b); });
+}
+function unzip(buf){
+  var dv=new DataView(buf), u8=new Uint8Array(buf), dec=new TextDecoder(), eocd=-1;
+  for(var i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-65557);i--){
+    if(dv.getUint32(i,true)===0x06054b50){ eocd=i; break; }
+  }
+  if(eocd<0) return Promise.reject(new Error("zip"));
+  var n=dv.getUint16(eocd+10,true), p=dv.getUint32(eocd+16,true), out={}, jobs=[];
+  for(var k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) return Promise.reject(new Error("zip"));
+    var method=dv.getUint16(p+10,true), csz=dv.getUint32(p+20,true);
+    var nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    var name=dec.decode(u8.subarray(p+46,p+46+nl));
+    var start=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);
+    var raw=u8.subarray(start,start+csz);
+    if(method===0) out[name]=raw;
+    else if(method===8) jobs.push((function(nm,r){ return inflateRaw(r).then(function(x){ out[nm]=x; }); })(name,raw));
+    p+=46+nl+xl+cl;
+  }
+  return Promise.all(jobs).then(function(){ return out; });
+}
+
+function exportBackup(){
+  if(!IDB){ toast("この端末ではデータを読み込めません",3000); return; }
+  toast("書き出しています…",60000);
+  var keys, vals, bkeys, bvals;
+  idbTx(["docs","blobs"],"readonly",function(st){
+    var a=st[0].getAllKeys(); a.onsuccess=function(){ keys=a.result; };
+    var b=st[0].getAll(); b.onsuccess=function(){ vals=b.result; };
+    var c=st[1].getAllKeys(); c.onsuccess=function(){ bkeys=c.result; };
+    var d=st[1].getAll(); d.onsuccess=function(){ bvals=d.result; };
+  }).then(function(){
+    var docs={}, photos={}, files=[];
+    keys.forEach(function(k,i){ docs[k]=vals[i]; });
+    bkeys.forEach(function(k,i){
+      var r=bvals[i]; if(!r||!r.buf) return;
+      photos[k]=r.type||"image/jpeg";
+      files.push({name:"photos/"+k, data:new Uint8Array(r.buf)});
+    });
+    var meta={app:"karte", version:1, exportedAt:new Date().toISOString(), docs:docs, photos:photos};
+    files.unshift({name:"data.json", data:new TextEncoder().encode(JSON.stringify(meta))});
+    return DL.save({filename:"karte-backup-"+todayISO()+".zip", data:zipStore(files)}).then(function(){
+      toast("書き出しました（顧客 "+customers.length+"名・写真 "+Object.keys(photos).length+"枚）",3500);
+    });
+  }).catch(function(){ toast("書き出せませんでした",3000); });
+}
+
+function uniq(list,keyOf){
+  var seen={}, out=[];
+  list.forEach(function(x){ var k=keyOf(x); if(k && !seen[k]){ seen[k]=1; out.push(x); } });
+  return out;
+}
+/* merge mode: customers/charts are replaced by id; month sales and registries are combined */
+function mergeDoc(path,cur,inc){
+  if(cur===undefined) return inc;
+  if(path.indexOf("sales/")===0){
+    var byVid={};
+    (cur.entries||[]).concat(inc.entries||[]).forEach(function(e){ byVid[e.vid]=e; });
+    var entries=Object.keys(byVid).map(function(k){ return byVid[k]; })
+      .sort(function(a,b){ return (a.date||"")<(b.date||"")?-1:1; });
+    return {ym:inc.ym||cur.ym, entries:entries, updatedAt:new Date().toISOString()};
+  }
+  if(path==="meta/colors"){
+    return {items:uniq((cur.items||[]).concat(inc.items||[]),function(x){ return x; }), updatedAt:new Date().toISOString()};
+  }
+  if(path==="meta/menulist"){
+    var m=(inc.items||[]).concat(cur.items||[]);
+    return {items:uniq(m,function(x){ return typeof x==="string"?x:(x&&x.name); }), updatedAt:new Date().toISOString()};
+  }
+  if(path==="meta/presets"){
+    return {chems:uniq((cur.chems||[]).concat(inc.chems||[]),function(x){ return x; }),
+            menus:uniq((cur.menus||[]).concat(inc.menus||[]),function(x){ return x; })};
+  }
+  return inc;
+}
+
+function importBackup(file,mode){
+  toast("読み込んでいます…",60000);
+  file.arrayBuffer().then(unzip).then(function(files){
+    if(!files["data.json"]) throw new Error("format");
+    var meta=JSON.parse(new TextDecoder().decode(files["data.json"]));
+    if(!meta || meta.app!=="karte" || !meta.docs) throw new Error("format");
+    var photos=meta.photos||{};
+    var recs={};
+    Object.keys(photos).forEach(function(id){
+      var u=files["photos/"+id]; if(!u) return;
+      recs[id]={type:photos[id], buf:u.slice().buffer};
+    });
+    var cur={};
+    var prep = mode==="merge"
+      ? idbTx("docs","readonly",function(s){
+          Object.keys(meta.docs).forEach(function(k){
+            var g=s.get(k); g.onsuccess=function(){ cur[k]=g.result; };
+          });
+        })
+      : Promise.resolve();
+    return prep.then(function(){
+      return idbTx(["docs","blobs"],"readwrite",function(st){
+        if(mode==="replace"){ st[0].clear(); st[1].clear(); }
+        Object.keys(meta.docs).forEach(function(k){
+          st[0].put(mode==="merge"?mergeDoc(k,cur[k],meta.docs[k]):meta.docs[k],k);
+        });
+        Object.keys(recs).forEach(function(id){ st[1].put(recs[id],id); });
+      });
+    }).then(function(){
+      salesCache={}; chart=null; S.cid=null;
+      preloadPhotos([]);
+      return Promise.all([loadCustomers(),loadPresets(),loadColors(),loadMenus()]);
+    }).then(function(){
+      render();
+      toast("読み込みました（顧客 "+customers.length+"名・写真 "+Object.keys(recs).length+"枚）",3500);
+    });
+  }).catch(function(e){
+    var m=(e&&e.message)||"";
+    toast(m==="format"||m==="zip"?"カルテのバックアップファイルではないようです":
+          m==="compressed"?"このZIPは読み込めません。書き出したファイルをそのままお使いください":
+          (e&&e.code==="quota_exceeded")?"端末の空き容量が足りません":
+          "読み込めませんでした",4000);
+  });
+}
+
+function regBackup(){
+  el("reg_body").innerHTML='<div class="sec" style="margin-top:16px"><h2>書き出し</h2><div class="card">'+
+      '<p style="margin:0 0 12px;font-size:.875rem">顧客・来店履歴・写真・カラー剤・メニュー・売上を、1つのZIPファイルにまとめて保存します。</p>'+
+      '<button class="btn primary" id="bk_export">ZIPに書き出す</button>'+
+      '<p class="note">機種変更の前や、月に一度くらいの書き出しをおすすめします。保存したファイルは「ファイル」アプリやiCloud Driveに置いておくと安心です。</p>'+
+    '</div></div>'+
+    '<div class="sec"><h2>読み込み</h2><div class="card">'+
+      '<p style="margin:0 0 12px;font-size:.875rem">書き出したZIPファイルから、データを復元します。</p>'+
+      '<div class="seg" id="bk_mode">'+
+        '<button data-m="merge" aria-current="true">追加する</button>'+
+        '<button data-m="replace">すべて置き換える</button>'+
+      '</div>'+
+      '<p class="note" id="bk_hint" style="margin:6px 0 12px"></p>'+
+      '<button class="btn ghost" id="bk_import">ZIPを選んで読み込む</button>'+
+      '<input type="file" id="bk_file" accept=".zip,application/zip" hidden>'+
+    '</div></div>'+
+    '<p class="note" id="bk_usage"></p>';
+
+  var mode="merge";
+  function hint(){
+    el("bk_hint").textContent = mode==="merge"
+      ? "今のデータは残したまま追加します。同じ顧客は、ファイルの内容で上書きされます。"
+      : "今のデータをすべて消してから、ファイルの内容に置き換えます。";
+  }
+  Array.prototype.forEach.call(el("bk_mode").querySelectorAll("button"),function(b){
+    b.onclick=function(){
+      mode=b.dataset.m;
+      Array.prototype.forEach.call(el("bk_mode").querySelectorAll("button"),function(x){
+        if(x===b) x.setAttribute("aria-current","true"); else x.removeAttribute("aria-current");
+      });
+      hint();
+    };
+  });
+  hint();
+  el("bk_export").onclick=exportBackup;
+  el("bk_import").onclick=function(){ el("bk_file").value=""; el("bk_file").click(); };
+  el("bk_file").onchange=function(){
+    var f=el("bk_file").files&&el("bk_file").files[0];
+    if(!f) return;
+    if(mode==="replace" && !confirm("今のデータ（顧客 "+customers.length+"名）をすべて消して、\n「"+f.name+"」の内容に置き換えます。取り消せません。よろしいですか？")) return;
+    importBackup(f,mode);
+  };
+  if(navigator.storage && navigator.storage.estimate){
+    navigator.storage.estimate().then(function(e){
+      if(!el("bk_usage")) return;
+      el("bk_usage").textContent="この端末で使っている容量：約"+(Math.round((e.usage||0)/1048576*10)/10)+"MB";
+    }).catch(function(){});
+  }
+}
+
+/* =========================================================
+   boot
+   ========================================================= */
+DL=LocalDL;
+render();
+idbOpen().then(function(db){
+  IDB=db; DB=LocalDB; ASSETS=LocalAssets;
+  if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){});
+  return Promise.all([loadCustomers(),loadPresets(),loadColors(),loadMenus()]);
+}).then(function(){ ready=true; render(); })
+  .catch(function(){ ready=true; render(); });
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+
+})();
+</script>
+</body>
+</html>
