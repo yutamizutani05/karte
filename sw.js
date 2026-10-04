@@ -1,7 +1,7 @@
 /* カルテ Service Worker — offline app shell.
    Customer data lives in IndexedDB, never in this cache.
    Bump CACHE when shipping changes to the shell. */
-const CACHE = 'karte-v3';
+const CACHE = 'karte-v4';
 const SHELL = [
   './',
   './index.html',

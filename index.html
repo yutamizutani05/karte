@@ -165,6 +165,12 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 28px}
 .chem:last-of-type{margin-bottom:0}
 .chem .cp{display:inline-block;font-size:.6875rem;font-weight:800;letter-spacing:.03em;
   padding:2px 9px;border-radius:999px;margin-bottom:4px}
+.rmix{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding-right:10px;margin-bottom:4px;scrollbar-width:none}
+.rmix::-webkit-scrollbar{display:none}
+.rmixc{flex:1 1 0;min-width:72px;display:flex;flex-direction:column;justify-content:space-between;gap:2px}
+.rmn{font-size:.875rem;font-weight:700;line-height:1.35;word-break:break-word}
+.rmr{font-size:1.125rem;font-weight:800}
+.rmcolon{align-self:flex-end;font-size:1.125rem;font-weight:800;color:var(--muted);line-height:1.6}
 .chemline{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding-right:10px}
 .chem .ci{flex:1;min-width:0;font-size:1.0625rem;font-weight:700;line-height:1.45;word-break:break-word}
 .chem .cr{flex:none;font-size:1rem;font-weight:800;color:var(--accent)}
@@ -212,14 +218,24 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 28px}
   background-position:calc(100% - 16px) 52%,calc(100% - 11px) 52%;
   background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .cpart.none{color:var(--muted);font-weight:600}
-.cagents{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
-.ag{position:relative;flex:1 1 44%;min-width:118px;display:flex}
-.ag input{width:100%;padding:11px 28px 11px 12px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper)}
-.ag input:focus{border-color:var(--accent-line)}
-.agdel{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;
+.cagents{display:flex;gap:14px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.cagents::-webkit-scrollbar{display:none}
+.ag{position:relative;flex:1 1 0;min-width:88px;display:flex;flex-direction:column;gap:6px}
+.ag + .ag::before{content:":";position:absolute;left:-11px;bottom:9px;font-size:1.125rem;font-weight:800;color:var(--muted)}
+.agname{position:relative;flex:1;display:flex;align-items:center;min-height:44px;padding:7px 24px 7px 10px;
+  border-radius:13px;background:var(--accent-soft);border:1.5px solid var(--accent-line);
+  font-size:.8125rem;font-weight:800;line-height:1.35;word-break:break-word}
+.agdel{position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;
   color:var(--muted);font-size:1rem;line-height:1;display:grid;place-items:center}
-.agdel:active{background:var(--accent-soft)}
-.agadd{flex:0 0 44px;height:42px;border-radius:13px;border:2px dashed var(--accent-line);
+.agdel:active{background:var(--card)}
+.agr{width:100%;padding:10px 6px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper);
+  text-align:center;font-weight:800}
+.agr:focus{border-color:var(--accent-line)}
+.agempty{margin:2px 0 0;font-size:.8125rem;color:var(--muted)}
+.agaddrow{display:flex;gap:7px;margin-top:8px}
+.agaddrow input{flex:1;min-width:0;padding:11px 12px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper)}
+.agaddrow input:focus{border-color:var(--accent-line)}
+.agadd{flex:0 0 44px;height:44px;border-radius:13px;border:2px dashed var(--accent-line);
   color:var(--accent);display:grid;place-items:center;font-size:1.125rem;font-weight:700;background:var(--accent-soft)}
 .agadd:active{transform:scale(.94)}
 .cpick{display:block;width:100%;margin-top:8px;padding:10px 12px;border-radius:13px;
@@ -229,9 +245,8 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 28px}
 .cmeta{display:flex;gap:7px;align-items:center;margin-top:9px}
 .cmeta input{padding:11px 10px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper);min-width:0}
 .cmeta input:focus{border-color:var(--accent-line)}
-.cmeta .cratio{flex:0 0 64px}
 .cmeta .cdevin{flex:1 1 0}
-.cmeta .cmin{flex:0 0 52px}
+.cmeta .cmin{flex:0 0 72px}
 .chemrow .del{flex:none;width:34px;height:34px;border-radius:12px;color:var(--danger);background:var(--danger-soft);
   display:grid;place-items:center;font-size:1.25rem;line-height:1}
 .chemrow .del:active{transform:scale(.94)}
@@ -408,6 +423,19 @@ function chemText(c){
   if(c&&c.min) t+=(t?"　":"")+c.min+"分";
   if(c&&c.part) t=c.part+"："+t;
   return t;
+}
+/* ratio is stored as one string ("2:1:1"); in the form each agent gets its own box */
+function ratioParts(c){
+  var n=chemItems(c).length, r=String((c&&c.ratio)||"").trim();
+  var p=r ? r.split(/\s*[:：]\s*/) : [];
+  if(p.length>n && n>0) p=p.slice(0,n-1).concat([p.slice(n-1).join(":")]);
+  while(p.length<n) p.push("");
+  return p;
+}
+function joinRatio(parts){
+  var p=parts.map(function(x){ return String(x||"").trim().replace(/[:：]/g,""); });
+  while(p.length && !p[p.length-1]) p.pop();
+  return p.join(":");
 }
 function chemEmpty(c){ return !chemItems(c).length && !(c&&c.dev) && !(c&&c.ratio) && !(c&&c.min); }
 function normChems(list){
@@ -765,10 +793,17 @@ function screenCustomer(){
     h+='<div class="recipe"><div class="rhead"><b>前回のレシピ</b><span>'+esc(fmtDate(last.date))+(last.menu?" ／ "+esc(last.menu):"")+'</span></div>';
     last.chems.forEach(function(x){
       var col=partColor(x.part);
+      var parts=ratioParts(x);
+      var cols=chemItems(x).length>1 && parts.some(function(v){ return v; });
       h+='<div class="chem" style="border-left-color:'+col+'">'+
         (x.part?'<span class="cp" style="background:'+col+'1F;color:'+col+'">'+esc(x.part)+'</span>':'')+
-        '<span class="chemline"><span class="ci">'+esc(chemNames(x))+'</span>'+
-        (x.ratio?'<span class="cr num" style="color:'+col+'">'+esc(x.ratio)+'</span>':'')+
+        (cols
+          ? '<span class="rmix">'+chemItems(x).map(function(n,j){
+              return '<span class="rmixc"><span class="rmn">'+esc(n)+'</span>'+
+                '<span class="rmr num" style="color:'+col+'">'+esc(parts[j]||"—")+'</span></span>';
+            }).join('<span class="rmcolon" aria-hidden="true">:</span>')+'</span><span class="chemline">'
+          : '<span class="chemline"><span class="ci">'+esc(chemNames(x))+'</span>'+
+            (x.ratio?'<span class="cr num" style="color:'+col+'">'+esc(x.ratio)+'</span>':''))+
         (x.dev?'<span class="ct">2液 '+esc(x.dev)+'</span>':'')+
         (x.min?'<span class="ct num">'+esc(x.min)+'分</span>':'')+'</span></div>';
     });
@@ -926,9 +961,9 @@ function openVisit(vid){
     var v=chart.visits.filter(function(x){return x.id===vid;})[0];
     draft=JSON.parse(JSON.stringify(v));
     draft.chems=normChems(draft.chems); draft.before=draft.before||[]; draft.after=draft.after||[];
-    if(!draft.chems.length) draft.chems=[{part:"",items:[""],dev:"",ratio:"",min:""}];
+    if(!draft.chems.length) draft.chems=[{part:"",items:[],dev:"",ratio:"",min:""}];
   }else{
-    draft={id:uid(),date:todayISO(),menu:"",price:"",chems:[{part:"",items:[""],dev:"",ratio:"",min:""}],
+    draft={id:uid(),date:todayISO(),menu:"",price:"",chems:[{part:"",items:[],dev:"",ratio:"",min:""}],
            memo:"",next:"",before:[],after:[],createdAt:new Date().toISOString()};
   }
   S.screen="visit"; render();
@@ -958,8 +993,8 @@ function screenVisit(){
      '<button class="btn ghost" id="addchem">空の配合を追加</button>'+
      '</div>'+
      (prev&&(prev.chems||[]).length?'<div class="btnrow"><button class="btn ghost" id="copyprev">前回の配合をコピー</button></div>':'')+
-     '<p class="note">1つの枠が1つの配合です。混ぜる薬剤は、枠内の「カラー剤から選んで足す」でまとめて選ぶか、＋で手入力できます。'+
-     '下の段は左から比率（1:1、30g など）、2液、放置時間（分）です。</p>'+
+     '<p class="note">1つの枠が1つの配合です。混ぜる薬剤は「カラー剤から選んで足す」でまとめて選ぶか、名前を入力して＋で足せます。'+
+     '各薬剤の下に比率の数字を入れると、「:」は自動でつながります。下の段は2液と放置時間（分）です。</p>'+
      '<datalist id="devlist">'+devOptions().map(function(m){return '<option value="'+esc(m)+'">';}).join("")+'</datalist>'+
      '<datalist id="chemlist">'+chemOptions().map(function(m){return '<option value="'+esc(m)+'">';}).join("")+'</datalist></div>';
 
@@ -980,13 +1015,13 @@ function screenVisit(){
   renderChems();
   renderPhotos("before"); renderPhotos("after");
 
-  el("addchem").onclick=function(){ pullForm(); draft.chems.push({part:"",items:[""],dev:"",ratio:"",min:""}); renderChems(); focusLastChem(); };
+  el("addchem").onclick=function(){ pullForm(); draft.chems.push({part:"",items:[],dev:"",ratio:"",min:""}); renderChems(); focusLastChem(); };
   el("pickchem").onclick=openChemSheet;
   el("pickmenu").onclick=openMenuSheet;
   if(el("copyprev")) el("copyprev").onclick=function(){
     pullForm();
     draft.chems=normChems(prev.chems);
-    if(!draft.chems.length) draft.chems=[{part:"",items:[""],dev:"",ratio:"",min:""}];
+    if(!draft.chems.length) draft.chems=[{part:"",items:[],dev:"",ratio:"",min:""}];
     if(!draft.menu) draft.menu=prev.menu||"";
     renderChems(); el("v_menu").value=draft.menu; toast("前回の配合を読み込みました");
   };
@@ -994,28 +1029,31 @@ function screenVisit(){
 }
 
 function focusLastChem(){
-  var rows=view.querySelectorAll(".chemrow .ag input");
+  var rows=view.querySelectorAll(".chemrow .agnew");
   if(rows.length) rows[rows.length-1].focus();
 }
 function renderChems(){
   var box=el("chems"); if(!box) return;
   box.innerHTML=draft.chems.map(function(c,i){
-    var items=(Array.isArray(c.items)&&c.items.length)?c.items:[""];
+    var items=chemItems(c), parts=ratioParts(c);
     var col=partColor(c.part);
     return '<div class="chemrow" data-i="'+i+'"'+(c.part?' style="border-color:'+col+'59"':'')+'>'+
       '<select class="cpart'+(c.part?"":" none")+'"'+
         (c.part?' style="background:'+col+'14;border-color:'+col+'45;color:'+col+'"':'')+'>'+
         partOptions(c.part||"")+'</select>'+
-      '<div class="cagents">'+
-        items.map(function(n,j){
-          return '<span class="ag"><input list="chemlist" data-j="'+j+'" placeholder="薬剤" value="'+esc(n)+'">'+
-            (items.length>1?'<button class="agdel" data-j="'+j+'" aria-label="この薬剤を外す">×</button>':'')+'</span>';
-        }).join("")+
-        '<button class="agadd" aria-label="混ぜる薬剤を足す">＋</button>'+
-      '</div>'+
+      (items.length
+        ? '<div class="cagents">'+items.map(function(n,j){
+            return '<div class="ag" data-name="'+esc(n)+'">'+
+              '<div class="agname"><span>'+esc(n)+'</span>'+
+              '<button class="agdel" data-j="'+j+'" aria-label="この薬剤を外す">×</button></div>'+
+              '<input class="agr" inputmode="decimal" placeholder="比率" aria-label="'+esc(n)+'の比率" value="'+esc(parts[j])+'">'+
+              '</div>';
+          }).join("")+'</div>'
+        : '<p class="agempty">下のボタンから薬剤を足してください。</p>')+
       '<button class="cpick">＋ カラー剤から選んでこの配合に足す（複数可）</button>'+
+      '<div class="agaddrow"><input class="agnew" list="chemlist" placeholder="薬剤名を入力して足す">'+
+        '<button class="agadd" aria-label="入力した薬剤を足す">＋</button></div>'+
       '<div class="cmeta">'+
-        '<input class="cratio" placeholder="1:1" value="'+esc(c.ratio||"")+'">'+
         '<input class="cdevin" list="devlist" placeholder="2液" aria-label="2液" value="'+esc(c.dev||"")+'">'+
         '<input class="cmin" inputmode="numeric" placeholder="分" value="'+esc(c.min||"")+'">'+
         '<button class="del" aria-label="この配合を削除">×</button>'+
@@ -1031,24 +1069,28 @@ function renderChems(){
       renderChems();
     };
     row.querySelector(".cpick").onclick=function(){ openChemSheet(i); };
-    row.querySelector(".agadd").onclick=function(){
-      pullForm();
-      draft.chems[i].items.push("");
+    function addTyped(){
+      pullForm();   // pullForm moves the typed name into items
       renderChems();
-      var ins=view.querySelectorAll('.chemrow[data-i="'+i+'"] .ag input');
-      if(ins.length) ins[ins.length-1].focus();
-    };
+      var ins=view.querySelectorAll('.chemrow[data-i="'+i+'"] .agnew');
+      if(ins.length) ins[0].focus();
+    }
+    row.querySelector(".agadd").onclick=addTyped;
+    row.querySelector(".agnew").addEventListener("keydown",function(e){
+      if(e.key==="Enter"){ e.preventDefault(); addTyped(); }
+    });
     row.querySelector(".del").onclick=function(){
       pullForm();
       draft.chems.splice(i,1);
-      if(!draft.chems.length) draft.chems.push({part:"",items:[""],dev:"",ratio:"",min:""});
+      if(!draft.chems.length) draft.chems.push({part:"",items:[],dev:"",ratio:"",min:""});
       renderChems();
     };
     Array.prototype.forEach.call(row.querySelectorAll(".agdel"),function(b){
       b.onclick=function(){
         pullForm();
-        draft.chems[i].items.splice(+b.dataset.j,1);
-        if(!draft.chems[i].items.length) draft.chems[i].items=[""];
+        var c=draft.chems[i], j=+b.dataset.j, parts=ratioParts(c);
+        c.items=chemItems(c); c.items.splice(j,1); parts.splice(j,1);
+        c.ratio=joinRatio(parts);
         renderChems();
       };
     });
@@ -1062,12 +1104,19 @@ function pullForm(){
   if(el("v_next")) draft.next=el("v_next").value;
   var rows=view.querySelectorAll(".chemrow");
   if(rows.length){
-    draft.chems=Array.prototype.map.call(rows,function(r){
+    draft.chems=Array.prototype.map.call(rows,function(r,i){
+      var prev=draft.chems[i]||{};
+      var ags=r.querySelectorAll(".ag");
+      var items=Array.prototype.map.call(ags,function(x){ return x.dataset.name; });
+      var parts=Array.prototype.map.call(ags,function(x){ return x.querySelector(".agr").value.trim(); });
+      var typed=r.querySelector(".agnew").value.trim();
+      if(typed && items.indexOf(typed)<0){ items.push(typed); parts.push(""); }
       return {
         part:r.querySelector(".cpart").value,
-        items:Array.prototype.map.call(r.querySelectorAll(".ag input"),function(x){return x.value.trim();}),
+        items:items,
         dev:r.querySelector(".cdevin").value.trim(),
-        ratio:r.querySelector(".cratio").value.trim(),
+        // a mix with no agents keeps whatever ratio it had (older records)
+        ratio:items.length ? joinRatio(parts) : (prev.ratio||""),
         min:r.querySelector(".cmin").value.trim()
       };
     });
