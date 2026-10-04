@@ -222,6 +222,14 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 28px}
 .agadd{flex:0 0 44px;height:42px;border-radius:13px;border:2px dashed var(--accent-line);
   color:var(--accent);display:grid;place-items:center;font-size:1.125rem;font-weight:700;background:var(--accent-soft)}
 .agadd:active{transform:scale(.94)}
+.cpick{display:block;width:100%;margin-top:8px;padding:10px 12px;border-radius:13px;
+  border:2px dashed var(--accent-line);background:var(--accent-soft);color:var(--accent);
+  font-size:.8125rem;font-weight:800;text-align:center}
+.cpick:active{transform:scale(.98)}
+.cdev{display:flex;gap:8px;align-items:center;margin-top:9px}
+.cdev span{flex:none;font-size:.75rem;font-weight:800;color:var(--muted);letter-spacing:.03em;min-width:28px}
+.cdev input{flex:1;min-width:0;padding:11px 12px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper)}
+.cdev input:focus{border-color:var(--accent-line)}
 .cmeta{display:flex;gap:7px;align-items:center;margin-top:9px}
 .cmeta input{padding:11px 12px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper);min-width:0}
 .cmeta input:focus{border-color:var(--accent-line)}
@@ -398,16 +406,23 @@ function chemItems(c){
 function chemNames(c){ return chemItems(c).join("　＋　"); }
 function chemText(c){
   var t=chemItems(c).join(" ＋ ");
+  if(c&&c.dev) t+=(t?"　":"")+"2液 "+c.dev;
   if(c&&c.ratio) t+=(t?"　":"")+c.ratio;
   if(c&&c.min) t+=(t?"　":"")+c.min+"分";
   if(c&&c.part) t=c.part+"："+t;
   return t;
 }
-function chemEmpty(c){ return !chemItems(c).length && !(c&&c.ratio) && !(c&&c.min); }
+function chemEmpty(c){ return !chemItems(c).length && !(c&&c.dev) && !(c&&c.ratio) && !(c&&c.min); }
 function normChems(list){
   return (Array.isArray(list)?list:[]).map(function(c){
-    return {part:(c&&c.part)||"", items:chemItems(c), ratio:(c&&c.ratio)||"", min:(c&&c.min)||""};
+    return {part:(c&&c.part)||"", items:chemItems(c), dev:(c&&c.dev)||"", ratio:(c&&c.ratio)||"", min:(c&&c.min)||""};
   });
+}
+var DEVS=["オキシ 6%","オキシ 4.5%","オキシ 3%","オキシ 1.5%"];
+function devOptions(){
+  var seen={}, out=[];
+  (chart?chart.visits:[]).forEach(function(v){ (v.chems||[]).forEach(function(c){ if(c&&c.dev) out.push(String(c.dev).trim()); }); });
+  return out.concat(DEVS).filter(function(n){ if(!n||seen[n]) return false; seen[n]=1; return true; });
 }
 function partOptions(cur){
   var list=PARTS.slice();
@@ -756,6 +771,7 @@ function screenCustomer(){
       h+='<div class="chem" style="border-left-color:'+col+'">'+
         (x.part?'<span class="cp" style="background:'+col+'1F;color:'+col+'">'+esc(x.part)+'</span>':'')+
         '<span class="chemline"><span class="ci">'+esc(chemNames(x))+'</span>'+
+        (x.dev?'<span class="ct">2液 '+esc(x.dev)+'</span>':'')+
         (x.ratio?'<span class="cr num" style="color:'+col+'">'+esc(x.ratio)+'</span>':'')+
         (x.min?'<span class="ct num">'+esc(x.min)+'分</span>':'')+'</span></div>';
     });
@@ -913,9 +929,9 @@ function openVisit(vid){
     var v=chart.visits.filter(function(x){return x.id===vid;})[0];
     draft=JSON.parse(JSON.stringify(v));
     draft.chems=normChems(draft.chems); draft.before=draft.before||[]; draft.after=draft.after||[];
-    if(!draft.chems.length) draft.chems=[{part:"",items:[""],ratio:"",min:""}];
+    if(!draft.chems.length) draft.chems=[{part:"",items:[""],dev:"",ratio:"",min:""}];
   }else{
-    draft={id:uid(),date:todayISO(),menu:"",price:"",chems:[{part:"",items:[""],ratio:"",min:""}],
+    draft={id:uid(),date:todayISO(),menu:"",price:"",chems:[{part:"",items:[""],dev:"",ratio:"",min:""}],
            memo:"",next:"",before:[],after:[],createdAt:new Date().toISOString()};
   }
   S.screen="visit"; render();
@@ -945,8 +961,9 @@ function screenVisit(){
      '<button class="btn ghost" id="addchem">空の配合を追加</button>'+
      '</div>'+
      (prev&&(prev.chems||[]).length?'<div class="btnrow"><button class="btn ghost" id="copyprev">前回の配合をコピー</button></div>':'')+
-     '<p class="note">1つの枠が1つの配合です。混ぜる薬剤は枠内の＋で横に足せます。'+
-     '下は比率（1:1、30g など）と放置時間（分）。</p>'+
+     '<p class="note">1つの枠が1つの配合です。混ぜる薬剤は、枠内の「カラー剤から選んで足す」でまとめて選ぶか、＋で手入力できます。'+
+     '2液の下は比率（1:1、30g など）と放置時間（分）です。</p>'+
+     '<datalist id="devlist">'+devOptions().map(function(m){return '<option value="'+esc(m)+'">';}).join("")+'</datalist>'+
      '<datalist id="chemlist">'+chemOptions().map(function(m){return '<option value="'+esc(m)+'">';}).join("")+'</datalist></div>';
 
   h+='<div class="sec"><h2>ビフォー</h2><div class="photos" id="ph_before"></div></div>';
@@ -966,13 +983,13 @@ function screenVisit(){
   renderChems();
   renderPhotos("before"); renderPhotos("after");
 
-  el("addchem").onclick=function(){ pullForm(); draft.chems.push({part:"",items:[""],ratio:"",min:""}); renderChems(); focusLastChem(); };
+  el("addchem").onclick=function(){ pullForm(); draft.chems.push({part:"",items:[""],dev:"",ratio:"",min:""}); renderChems(); focusLastChem(); };
   el("pickchem").onclick=openChemSheet;
   el("pickmenu").onclick=openMenuSheet;
   if(el("copyprev")) el("copyprev").onclick=function(){
     pullForm();
     draft.chems=normChems(prev.chems);
-    if(!draft.chems.length) draft.chems=[{part:"",items:[""],ratio:"",min:""}];
+    if(!draft.chems.length) draft.chems=[{part:"",items:[""],dev:"",ratio:"",min:""}];
     if(!draft.menu) draft.menu=prev.menu||"";
     renderChems(); el("v_menu").value=draft.menu; toast("前回の配合を読み込みました");
   };
@@ -999,6 +1016,8 @@ function renderChems(){
         }).join("")+
         '<button class="agadd" aria-label="混ぜる薬剤を足す">＋</button>'+
       '</div>'+
+      '<button class="cpick">＋ カラー剤から選んでこの配合に足す（複数可）</button>'+
+      '<div class="cdev"><span>2液</span><input class="cdevin" list="devlist" placeholder="オキシ 6%" value="'+esc(c.dev||"")+'"></div>'+
       '<div class="cmeta">'+
         '<input class="cratio" placeholder="1:1" value="'+esc(c.ratio||"")+'">'+
         '<input class="cmin" inputmode="numeric" placeholder="分" value="'+esc(c.min||"")+'">'+
@@ -1014,6 +1033,7 @@ function renderChems(){
       pullForm();
       renderChems();
     };
+    row.querySelector(".cpick").onclick=function(){ openChemSheet(i); };
     row.querySelector(".agadd").onclick=function(){
       pullForm();
       draft.chems[i].items.push("");
@@ -1024,7 +1044,7 @@ function renderChems(){
     row.querySelector(".del").onclick=function(){
       pullForm();
       draft.chems.splice(i,1);
-      if(!draft.chems.length) draft.chems.push({part:"",items:[""],ratio:"",min:""});
+      if(!draft.chems.length) draft.chems.push({part:"",items:[""],dev:"",ratio:"",min:""});
       renderChems();
     };
     Array.prototype.forEach.call(row.querySelectorAll(".agdel"),function(b){
@@ -1049,6 +1069,7 @@ function pullForm(){
       return {
         part:r.querySelector(".cpart").value,
         items:Array.prototype.map.call(r.querySelectorAll(".ag input"),function(x){return x.value.trim();}),
+        dev:r.querySelector(".cdevin").value.trim(),
         ratio:r.querySelector(".cratio").value.trim(),
         min:r.querySelector(".cmin").value.trim()
       };
@@ -1057,8 +1078,10 @@ function pullForm(){
 }
 
 /* ---- chemical picker sheet ---- */
-function openChemSheet(){
+/* target: index of the mix to add to; omitted = make a new mix */
+function openChemSheet(target){
   pullForm();
+  var into=(typeof target==="number" && draft.chems[target]) ? target : -1;
   sheetSel={};
   var back=document.createElement("div");
   back.className="sheetback";
@@ -1066,7 +1089,9 @@ function openChemSheet(){
     '<div class="shead"><button class="barbtn" id="sh_cancel">閉じる</button>'+
     '<b>カラー剤を選ぶ</b>'+
     '<button class="barbtn" id="sh_ok">追加</button></div>'+
-    '<div class="sbody"><p class="note" style="margin:0 0 10px">選んだ薬剤は1つの配合としてまとめて入ります。</p>'+
+    '<div class="sbody"><p class="note" style="margin:0 0 10px">'+
+      (into>=0?'タップした薬剤をすべて、この配合に足します。':'タップした薬剤をすべて、1つの配合としてまとめて入れます。')+
+      'いくつでも選べます。</p>'+
     '<div class="search" style="margin-bottom:10px">'+ICON.search+
       '<input id="sh_q" type="search" autocomplete="off" placeholder="薬剤名で絞り込む"></div>'+
     '<div id="sh_list"></div></div></div>';
@@ -1091,11 +1116,15 @@ function openChemSheet(){
       b.onclick=function(){
         var n=b.dataset.n;
         if(sheetSel[n]) delete sheetSel[n]; else sheetSel[n]=1;
-        fill();
+        fill(); count();
       };
     });
   }
   function close(){ back.remove(); }
+  function count(){
+    var k=Object.keys(sheetSel).length;
+    el("sh_ok").textContent=k?"追加（"+k+"）":"追加";
+  }
 
   el("sh_q").addEventListener("input",fill);
   el("sh_cancel").onclick=close;
@@ -1103,10 +1132,17 @@ function openChemSheet(){
   el("sh_ok").onclick=function(){
     var picked=Object.keys(sheetSel);
     if(!picked.length){ close(); return; }
+    if(into>=0){
+      var mix=draft.chems[into], have=chemItems(mix);
+      mix.items=have.concat(picked.filter(function(n){ return have.indexOf(n)<0; }));
+      close(); renderChems();
+      toast(picked.length+"件をこの配合に足しました");
+      return;
+    }
     draft.chems=draft.chems.filter(function(c){return !chemEmpty(c);});
-    draft.chems.push({part:"", items:picked, ratio:"", min:""});
+    draft.chems.push({part:"", items:picked, dev:"", ratio:"", min:""});
     close(); renderChems();
-    var rows=view.querySelectorAll(".chemrow .cratio");
+    var rows=view.querySelectorAll(".chemrow .cdevin");
     if(rows.length) rows[rows.length-1].focus();
   };
   fill();
