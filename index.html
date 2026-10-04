@@ -226,15 +226,12 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 28px}
   border:2px dashed var(--accent-line);background:var(--accent-soft);color:var(--accent);
   font-size:.8125rem;font-weight:800;text-align:center}
 .cpick:active{transform:scale(.98)}
-.cdev{display:flex;gap:8px;align-items:center;margin-top:9px}
-.cdev span{flex:none;font-size:.75rem;font-weight:800;color:var(--muted);letter-spacing:.03em;min-width:28px}
-.cdev input{flex:1;min-width:0;padding:11px 12px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper)}
-.cdev input:focus{border-color:var(--accent-line)}
 .cmeta{display:flex;gap:7px;align-items:center;margin-top:9px}
-.cmeta input{padding:11px 12px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper);min-width:0}
+.cmeta input{padding:11px 10px;border-radius:13px;border:1.5px solid var(--line);background:var(--paper);min-width:0}
 .cmeta input:focus{border-color:var(--accent-line)}
-.cmeta .cratio{flex:1 1 auto}
-.cmeta .cmin{flex:0 0 78px}
+.cmeta .cratio{flex:0 0 64px}
+.cmeta .cdevin{flex:1 1 0}
+.cmeta .cmin{flex:0 0 52px}
 .chemrow .del{flex:none;width:34px;height:34px;border-radius:12px;color:var(--danger);background:var(--danger-soft);
   display:grid;place-items:center;font-size:1.25rem;line-height:1}
 .chemrow .del:active{transform:scale(.94)}
@@ -406,8 +403,8 @@ function chemItems(c){
 function chemNames(c){ return chemItems(c).join("　＋　"); }
 function chemText(c){
   var t=chemItems(c).join(" ＋ ");
-  if(c&&c.dev) t+=(t?"　":"")+"2液 "+c.dev;
   if(c&&c.ratio) t+=(t?"　":"")+c.ratio;
+  if(c&&c.dev) t+=(t?"　":"")+"2液 "+c.dev;
   if(c&&c.min) t+=(t?"　":"")+c.min+"分";
   if(c&&c.part) t=c.part+"："+t;
   return t;
@@ -771,8 +768,8 @@ function screenCustomer(){
       h+='<div class="chem" style="border-left-color:'+col+'">'+
         (x.part?'<span class="cp" style="background:'+col+'1F;color:'+col+'">'+esc(x.part)+'</span>':'')+
         '<span class="chemline"><span class="ci">'+esc(chemNames(x))+'</span>'+
-        (x.dev?'<span class="ct">2液 '+esc(x.dev)+'</span>':'')+
         (x.ratio?'<span class="cr num" style="color:'+col+'">'+esc(x.ratio)+'</span>':'')+
+        (x.dev?'<span class="ct">2液 '+esc(x.dev)+'</span>':'')+
         (x.min?'<span class="ct num">'+esc(x.min)+'分</span>':'')+'</span></div>';
     });
     if(last.memo) h+='<div class="rmemo">'+esc(last.memo)+'</div>';
@@ -962,7 +959,7 @@ function screenVisit(){
      '</div>'+
      (prev&&(prev.chems||[]).length?'<div class="btnrow"><button class="btn ghost" id="copyprev">前回の配合をコピー</button></div>':'')+
      '<p class="note">1つの枠が1つの配合です。混ぜる薬剤は、枠内の「カラー剤から選んで足す」でまとめて選ぶか、＋で手入力できます。'+
-     '2液の下は比率（1:1、30g など）と放置時間（分）です。</p>'+
+     '下の段は左から比率（1:1、30g など）、2液、放置時間（分）です。</p>'+
      '<datalist id="devlist">'+devOptions().map(function(m){return '<option value="'+esc(m)+'">';}).join("")+'</datalist>'+
      '<datalist id="chemlist">'+chemOptions().map(function(m){return '<option value="'+esc(m)+'">';}).join("")+'</datalist></div>';
 
@@ -1017,9 +1014,9 @@ function renderChems(){
         '<button class="agadd" aria-label="混ぜる薬剤を足す">＋</button>'+
       '</div>'+
       '<button class="cpick">＋ カラー剤から選んでこの配合に足す（複数可）</button>'+
-      '<div class="cdev"><span>2液</span><input class="cdevin" list="devlist" placeholder="オキシ 6%" value="'+esc(c.dev||"")+'"></div>'+
       '<div class="cmeta">'+
         '<input class="cratio" placeholder="1:1" value="'+esc(c.ratio||"")+'">'+
+        '<input class="cdevin" list="devlist" placeholder="2液" aria-label="2液" value="'+esc(c.dev||"")+'">'+
         '<input class="cmin" inputmode="numeric" placeholder="分" value="'+esc(c.min||"")+'">'+
         '<button class="del" aria-label="この配合を削除">×</button>'+
       '</div></div>';
